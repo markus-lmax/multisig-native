@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "SBF_OUT_DIR=program/target/so  pnpm ts-mocha -p ./tests/tsconfig.test.json -t 1000000 ./tests/test.ts",
+    "test": "SBF_OUT_DIR=program/target/so  pnpm ts-mocha -p ./tests/tsconfig.test.json -t 1000000 tests/*Test.ts",
     "build": "cargo build-sbf --manifest-path=./program/Cargo.toml --sbf-out-dir=./program/target/so",
     "build-and-test": "pnpm build && pnpm test",
     "deploy": "solana program deploy ./program/target/so/multisig_native.so"
