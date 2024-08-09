@@ -5,18 +5,15 @@ import {start} from 'solana-bankrun';
 import {createCreateMultisigInstruction, createCreateTransactionInstruction} from '../ts';
 
 describe('multisig-native', async () => {
-  // load program in solana-bankrun
   const PROGRAM_ID = PublicKey.unique();
   const context = await start([{ name: 'multisig_native', programId: PROGRAM_ID }], []);
   const client = context.banksClient;
   const payer = context.payer;
 
   test('Log create_multisig', async () => {
-    const blockhash = context.lastBlockhash;
-    const ix = createCreateMultisigInstruction(payer.publicKey, PROGRAM_ID);
-    const tx = new Transaction();
-    tx.recentBlockhash = blockhash;
-    tx.add(ix).sign(payer);
+    const tx = new Transaction().add(createCreateMultisigInstruction(payer.publicKey, PROGRAM_ID));
+    tx.recentBlockhash = context.lastBlockhash;
+    tx.sign(payer);
 
     const transaction = await client.processTransaction(tx);
 
@@ -29,11 +26,9 @@ describe('multisig-native', async () => {
   });
 
   test('Log create_transaction', async () => {
-    const blockhash = context.lastBlockhash;
-    const ix = createCreateTransactionInstruction(payer.publicKey, PROGRAM_ID);
-    const tx = new Transaction();
-    tx.recentBlockhash = blockhash;
-    tx.add(ix).sign(payer);
+    const tx = new Transaction().add(createCreateTransactionInstruction(payer.publicKey, PROGRAM_ID));
+    tx.recentBlockhash = context.lastBlockhash;
+    tx.sign(payer);
 
     const transaction = await client.processTransaction(tx);
 
