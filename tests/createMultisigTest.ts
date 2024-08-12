@@ -1,27 +1,35 @@
-import {describe, test} from 'node:test';
-import {PublicKey, Transaction} from '@solana/web3.js';
-import {assert} from 'chai';
-import {start} from 'solana-bankrun';
-import {createCreateMultisigInstruction, createCreateTransactionInstruction} from '../ts';
+import {describe, test} from "node:test";
+import {Keypair, PublicKey} from "@solana/web3.js";
+import {assert} from "chai";
+import {start} from "solana-bankrun";
+import {MultisigDsl} from "../ts";
 
-describe('create multisig', async () => {
-  const PROGRAM_ID = PublicKey.unique();
-  const context = await start([{ name: 'multisig_native', programId: PROGRAM_ID }], []);
-  const client = context.banksClient;
-  const payer = context.payer;
+describe("create multisig", async () => {
+  const programId = PublicKey.unique();
+  const context = await start([{ name: "multisig_native", programId: programId }], []);
+  const dsl = new MultisigDsl(programId, context);
 
   test('Log create_multisig', async () => {
-    const tx = new Transaction().add(createCreateMultisigInstruction(payer.publicKey, PROGRAM_ID));
-    tx.recentBlockhash = context.lastBlockhash;
-    tx.sign(payer);
+    const multisig = await dsl.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate(), Keypair.generate()]);
+    const logs = multisig.txMeta.logMessages;
 
-    const transaction = await client.processTransaction(tx);
-
-    assert(transaction.logMessages[0].startsWith(`Program ${PROGRAM_ID}`));
-    assert(transaction.logMessages[1] === `Program log: Our program's Program ID: ${PROGRAM_ID}`);
-    assert(transaction.logMessages[2] === `Program log: create_multisig called`);
-    assert(transaction.logMessages[3].startsWith(`Program ${PROGRAM_ID} consumed`));
-    assert(transaction.logMessages[4] === `Program ${PROGRAM_ID} success`);
-    assert(transaction.logMessages.length === 5);
+    assert(logs[0].startsWith(`Program ${programId}`));
+    assert(logs[1] === `Program log: Our program's Program ID: ${programId}`);
+    assert(logs[2] === `Program log: create_multisig called`);
+    assert(logs[3].startsWith(`Program ${programId} consumed`));
+    assert(logs[4] === `Program ${programId} success`);
+    assert(logs.length === 5);
   });
+
+  test("create multisig account", async () => {
+    // const multisig = await dsl.createMultisig(2, 3);
+    //
+    // let actualMultisig = await program.account.multisig.fetch(multisig.address);
+    // assert.strictEqual(actualMultisig.nonce, multisig.nonce);
+    // assert.ok(multisig.threshold.eq(actualMultisig.threshold));
+    // assert.deepStrictEqual(actualMultisig.owners, multisig.owners.map(owner => owner.publicKey));
+    // assert.strictEqual(actualMultisig.ownerSetSeqno, 0);
+    assert.isBelow(3, 4, "not below!")
+  });
+
 });
