@@ -9,7 +9,7 @@ describe("create multisig", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test('Log create_multisig', async () => {
+  test("Log create_multisig", async () => {
     const multisig = await dsl.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate(), Keypair.generate()]);
     const logs = multisig.txMeta.logMessages;
 

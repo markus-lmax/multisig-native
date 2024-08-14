@@ -1,7 +1,7 @@
 import {Buffer} from "node:buffer";
 import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
-import * as borsh from 'borsh';
-import {MultisigInstruction} from '.';
+import * as borsh from "borsh";
+import {MultisigInstruction} from ".";
 
 class Assignable {
   constructor(properties) {
@@ -25,7 +25,7 @@ const CreateMultisigSchema =
   {
     struct: {
       instructionDiscriminator: "u8",
-      owners: {array: {type: {array: {type: 'u8', len: 32}}}},
+      owners: {array: {type: {array: {type: "u8", len: 32}}}},
       threshold: "u8",
       nonce: "u8"
     }
