@@ -1,7 +1,7 @@
 export * from "./createMultisig";
-export * from "./createTransaction";
+export * from "./proposeTransaction";
 
 export enum MultisigInstruction {
   CreateMultisig = 0,
-  CreateTransaction = 1,
+  ProposeTransaction = 1,
 }

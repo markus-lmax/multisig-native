@@ -1,2 +1,2 @@
 pub mod create_multisig;
-pub mod create_transaction;
+pub mod propose_transaction;

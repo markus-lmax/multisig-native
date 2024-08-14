@@ -11,16 +11,13 @@ class Assignable {
   }
 }
 
-export class CreateTransaction extends Assignable{
+export class ProposeTransaction extends Assignable{
   toBuffer() {
-    return Buffer.from(borsh.serialize(CreateTransactionSchema, this));
+    return Buffer.from(borsh.serialize(ProposeTransactionSchema, this));
   }
+}
 
-  static fromBuffer(buffer: Buffer) {
-    return borsh.deserialize(CreateTransactionSchema, buffer);
-  }}
-
-const CreateTransactionSchema =
+const ProposeTransactionSchema =
   {
     struct: {
       instructionDiscriminator: "u8",
@@ -30,9 +27,9 @@ const CreateTransactionSchema =
     },
   };
 
-export function createCreateTransactionInstruction(payer: PublicKey, programId: PublicKey, instructions: PublicKey[]): TransactionInstruction {
-  const instructionObject = new CreateTransaction({
-    instructionDiscriminator: MultisigInstruction.CreateTransaction,
+export function createProposeTransactionInstruction(payer: PublicKey, programId: PublicKey, instructions: PublicKey[]): TransactionInstruction {
+  const proposeTransaction = new ProposeTransaction({
+    instructionDiscriminator: MultisigInstruction.ProposeTransaction,
     instructions: instructions.map(programId => ({ program_id: programId.toBuffer() }))
   });
 
@@ -41,6 +38,6 @@ export function createCreateTransactionInstruction(payer: PublicKey, programId: 
       {pubkey: payer, isSigner: true, isWritable: true},
     ],
     programId: programId,
-    data: instructionObject.toBuffer(),
+    data: proposeTransaction.toBuffer(),
   });
 }

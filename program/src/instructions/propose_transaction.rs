@@ -18,13 +18,13 @@ pub struct TransactionInstructionData {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct CreateTransactionInstructionData {
+pub struct ProposeTransactionInstructionData {
     pub instructions: Vec<TransactionInstructionData>,
 }
 
-pub fn create_transaction(_program_id: &Pubkey,
-                          _accounts: &[AccountInfo],
-                          data: CreateTransactionInstructionData) -> ProgramResult {
-    msg!("Instruction: CreateTransaction - {:?}", data);
+pub fn propose_transaction(_program_id: &Pubkey,
+                           _accounts: &[AccountInfo],
+                           data: ProposeTransactionInstructionData) -> ProgramResult {
+    msg!("Instruction: ProposeTransaction - {:?}", data);
     Ok(())
 }
