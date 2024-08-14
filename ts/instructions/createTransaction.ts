@@ -1,39 +1,39 @@
-import {Buffer} from 'node:buffer';
-import {type PublicKey, TransactionInstruction} from '@solana/web3.js';
-import * as borsh from 'borsh';
-import {MultisigInstruction} from '.';
+import {Buffer} from "node:buffer";
+import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
+import * as borsh from "borsh";
+import {MultisigInstruction} from ".";
 
-export class CreateTransaction {
-  instruction: MultisigInstruction;
-
-  constructor(props: { instruction: MultisigInstruction }) {
-    this.instruction = props.instruction;
+class Assignable {
+  constructor(properties) {
+    for (const [key, value] of Object.entries(properties)) {
+      this[key] = value;
+    }
   }
+}
 
+export class CreateTransaction extends Assignable{
   toBuffer() {
     return Buffer.from(borsh.serialize(CreateTransactionSchema, this));
   }
 
   static fromBuffer(buffer: Buffer) {
-    return borsh.deserialize(CreateTransactionSchema, CreateTransaction, buffer);
-  }
-}
+    return borsh.deserialize(CreateTransactionSchema, buffer);
+  }}
 
-export const CreateTransactionSchema = new Map([
-  [
-    CreateTransaction,
-    {
-      kind: 'struct',
-      fields: [
-        ['instruction', 'u8'],
-      ],
+const CreateTransactionSchema =
+  {
+    struct: {
+      instructionDiscriminator: "u8",
+      instructions: {array: {type: {struct: {
+        program_id: { array: {type: "u8", len: 32}}
+      }}}},
     },
-  ],
-]);
+  };
 
-export function createCreateTransactionInstruction(payer: PublicKey, programId: PublicKey): TransactionInstruction {
+export function createCreateTransactionInstruction(payer: PublicKey, programId: PublicKey, instructions: PublicKey[]): TransactionInstruction {
   const instructionObject = new CreateTransaction({
-    instruction: MultisigInstruction.CreateTransaction,
+    instructionDiscriminator: MultisigInstruction.CreateTransaction,
+    instructions: instructions.map(programId => ({ program_id: programId.toBuffer() }))
   });
 
   return new TransactionInstruction({

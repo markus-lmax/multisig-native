@@ -11,7 +11,7 @@ describe('transaction account', async () => {
   const payer = context.payer;
 
   test('Log create_transaction', async () => {
-    const tx = new Transaction().add(createCreateTransactionInstruction(payer.publicKey, PROGRAM_ID));
+    const tx = new Transaction().add(createCreateTransactionInstruction(payer.publicKey, PROGRAM_ID, [PublicKey.unique(), PublicKey.unique()]));
     tx.recentBlockhash = context.lastBlockhash;
     tx.sign(payer);
 
@@ -19,7 +19,7 @@ describe('transaction account', async () => {
 
     assert(transaction.logMessages[0].startsWith(`Program ${PROGRAM_ID}`));
     assert(transaction.logMessages[1] === `Program log: Our program's Program ID: ${PROGRAM_ID}`);
-    assert(transaction.logMessages[2] === `Program log: create_transaction called`);
+    assert(transaction.logMessages[2].startsWith(`Program log: Instruction: CreateTransaction - CreateTransactionInstructionData { instructions: [TransactionInstructionData { program_id:`));
     assert(transaction.logMessages[3].startsWith(`Program ${PROGRAM_ID} consumed`));
     assert(transaction.logMessages[4] === `Program ${PROGRAM_ID} success`);
     assert(transaction.logMessages.length === 5);

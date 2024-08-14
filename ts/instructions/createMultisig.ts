@@ -1,39 +1,42 @@
-import {Buffer} from 'node:buffer';
-import {type PublicKey, SystemProgram, TransactionInstruction} from '@solana/web3.js';
+import {Buffer} from "node:buffer";
+import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
 import * as borsh from 'borsh';
 import {MultisigInstruction} from '.';
 
-export class CreateMultisig {
-  instruction: MultisigInstruction;
-
-  constructor(props: { instruction: MultisigInstruction }) {
-    this.instruction = props.instruction;
+class Assignable {
+  constructor(properties) {
+    for (const [key, value] of Object.entries(properties)) {
+      this[key] = value;
+    }
   }
+}
 
+export class CreateMultisig extends Assignable {
   toBuffer() {
     return Buffer.from(borsh.serialize(CreateMultisigSchema, this));
   }
 
   static fromBuffer(buffer: Buffer) {
-    return borsh.deserialize(CreateMultisigSchema, CreateMultisig, buffer);
+    return borsh.deserialize(CreateMultisigSchema, buffer);
   }
 }
 
-export const CreateMultisigSchema = new Map([
-  [
-    CreateMultisig,
-    {
-      kind: 'struct',
-      fields: [
-        ['instruction', 'u8'],
-      ],
-    },
-  ],
-]);
+const CreateMultisigSchema =
+  {
+    struct: {
+      instructionDiscriminator: "u8",
+      owners: {array: {type: {array: {type: 'u8', len: 32}}}},
+      threshold: "u8",
+      nonce: "u8"
+    }
+  };
 
-export function createCreateMultisigInstruction(payer: PublicKey, programId: PublicKey): TransactionInstruction {
+export function createCreateMultisigInstruction(payer: PublicKey, programId: PublicKey, owners: PublicKey[], threshold: number, nonce: number): TransactionInstruction {
   const instructionObject = new CreateMultisig({
-    instruction: MultisigInstruction.CreateMultisig,
+    instructionDiscriminator: MultisigInstruction.CreateMultisig,
+    owners: owners.map(owner => owner.toBuffer()),
+    threshold: threshold,
+    nonce: nonce
   });
 
   return new TransactionInstruction({

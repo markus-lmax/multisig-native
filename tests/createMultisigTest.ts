@@ -15,7 +15,7 @@ describe("create multisig", async () => {
 
     assert(logs[0].startsWith(`Program ${programId}`));
     assert(logs[1] === `Program log: Our program's Program ID: ${programId}`);
-    assert(logs[2] === `Program log: create_multisig called`);
+    assert(logs[2].startsWith(`Program log: Instruction: CreateMultisig - CreateMultisigInstructionData { owners: [`));
     assert(logs[3].startsWith(`Program ${programId} consumed`));
     assert(logs[4] === `Program ${programId} success`);
     assert(logs.length === 5);

@@ -34,7 +34,8 @@ export class MultisigDsl {
     );
 
     const payer = this.programTestContext.payer;
-    const tx = new Transaction().add(createCreateMultisigInstruction(payer.publicKey, this.programId));
+    const ownerKeys = owners.map(owner => owner.publicKey);
+    const tx = new Transaction().add(createCreateMultisigInstruction(payer.publicKey, this.programId, ownerKeys, threshold, nonce));
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
     tx.sign(payer);
 

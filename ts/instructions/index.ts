@@ -1,5 +1,5 @@
-export * from './createMultisig';
- export * from './createTransaction';
+export * from "./createMultisig";
+export * from "./createTransaction";
 
 export enum MultisigInstruction {
   CreateMultisig = 0,
