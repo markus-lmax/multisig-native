@@ -2,22 +2,11 @@ import {Buffer} from "node:buffer";
 import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
 import * as borsh from "borsh";
 import {MultisigInstruction} from ".";
-
-class Assignable {
-  constructor(properties) {
-    for (const [key, value] of Object.entries(properties)) {
-      this[key] = value;
-    }
-  }
-}
+import {Assignable} from "./utils/assignable";
 
 export class CreateMultisig extends Assignable {
   toBuffer() {
     return Buffer.from(borsh.serialize(CreateMultisigSchema, this));
-  }
-
-  static fromBuffer(buffer: Buffer) {
-    return borsh.deserialize(CreateMultisigSchema, buffer);
   }
 }
 
@@ -32,7 +21,7 @@ const CreateMultisigSchema =
   };
 
 export function createCreateMultisigInstruction(payer: PublicKey, programId: PublicKey, owners: PublicKey[], threshold: number, nonce: number): TransactionInstruction {
-  const instructionObject = new CreateMultisig({
+  const createMultisig = new CreateMultisig({
     instructionDiscriminator: MultisigInstruction.CreateMultisig,
     owners: owners.map(owner => owner.toBuffer()),
     threshold: threshold,
@@ -44,6 +33,6 @@ export function createCreateMultisigInstruction(payer: PublicKey, programId: Pub
       {pubkey: payer, isSigner: true, isWritable: true},
     ],
     programId: programId,
-    data: instructionObject.toBuffer(),
+    data: createMultisig.toBuffer(),
   });
 }

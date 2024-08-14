@@ -2,16 +2,9 @@ import {Buffer} from "node:buffer";
 import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
 import * as borsh from "borsh";
 import {MultisigInstruction} from ".";
+import {Assignable} from "./utils/assignable";
 
-class Assignable {
-  constructor(properties) {
-    for (const [key, value] of Object.entries(properties)) {
-      this[key] = value;
-    }
-  }
-}
-
-export class ProposeTransaction extends Assignable{
+export class ProposeTransaction extends Assignable {
   toBuffer() {
     return Buffer.from(borsh.serialize(ProposeTransactionSchema, this));
   }
