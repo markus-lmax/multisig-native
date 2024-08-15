@@ -26,6 +26,11 @@ export class MultisigDsl {
     this.programTestContext = programTestContext;
   }
 
+  async createMultisig(threshold: number, numberOfOwners: number, initialBalance: number = 0): Promise<MultisigAccount> {
+    const owners: Array<Keypair> = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
+    return await this.createMultisigWithOwners(threshold, owners, initialBalance);
+  }
+
   async createMultisigWithOwners(threshold: number, owners: Array<Keypair>, initialBalance: number = 0): Promise<MultisigAccount> {
     const multisig = Keypair.generate();
     const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(

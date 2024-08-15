@@ -22,14 +22,16 @@ describe("create multisig", async () => {
   });
 
   test("create multisig account", async () => {
-    // const multisig = await dsl.createMultisig(2, 3);
-    //
-    // let actualMultisig = await program.account.multisig.fetch(multisig.address);
+    const multisig = await dsl.createMultisig(2, 3);
+
+    const actualMultisigAccountInfo = await context.banksClient.getAccount(multisig.address);
+    // assert.isNotNull(actualMultisigAccountInfo);
+    // const actualMultisigData = actualMultisigAccountInfo?.data;
+    // const actualMultisig = AccountLayout.decode(actualMultisigData);
+
     // assert.strictEqual(actualMultisig.nonce, multisig.nonce);
-    // assert.ok(multisig.threshold.eq(actualMultisig.threshold));
+    // assert.strictEqual(actualMultisig.threshold, multisig.threshold);
     // assert.deepStrictEqual(actualMultisig.owners, multisig.owners.map(owner => owner.publicKey));
     // assert.strictEqual(actualMultisig.ownerSetSeqno, 0);
-    assert.isBelow(3, 4, "not below!")
   });
-
 });
