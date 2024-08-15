@@ -1,7 +1,6 @@
 use borsh_derive::{BorshDeserialize, BorshSerialize};
-use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 use solana_program::pubkey::Pubkey;
-
+use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
 // #[derive(BorshSerialize, BorshDeserialize, Debug)]
 // pub struct TransactionAccount {
@@ -22,9 +21,11 @@ pub struct ProposeTransactionInstructionData {
     pub instructions: Vec<TransactionInstructionData>,
 }
 
-pub fn propose_transaction(_program_id: &Pubkey,
-                           _accounts: &[AccountInfo],
-                           data: ProposeTransactionInstructionData) -> ProgramResult {
+pub fn propose_transaction(
+    _program_id: &Pubkey,
+    _accounts: &[AccountInfo],
+    data: ProposeTransactionInstructionData,
+) -> ProgramResult {
     msg!("Instruction: ProposeTransaction - {:?}", data);
     Ok(())
 }
