@@ -639,6 +639,7 @@ dependencies = [
  "borsh-derive 1.5.1",
  "solana-program",
  "solana-security-txt",
+ "thiserror",
 ]
 
 [[package]]

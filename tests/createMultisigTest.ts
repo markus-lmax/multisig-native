@@ -49,4 +49,14 @@ describe("create multisig", async () => {
     assert.deepEqual(actualMultisig2["owners"], multisig2.owners.map(owner => Array.from(owner.publicKey.toBytes())));
     assert.strictEqual(actualMultisig2["owner_set_seqno"], 0);
   })
+
+  test("fail to create multisig if provided threshold is greater than number of owners", async () => {
+    try {
+      await dsl.createMultisig(4, 3);
+      assert.fail("Multisig should not have been created");
+    } catch (e: any) {
+      // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs) - is there a way to retain the anchor behaviour?
+      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+    }
+  });
 });

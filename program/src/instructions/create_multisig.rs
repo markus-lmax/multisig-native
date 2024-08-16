@@ -1,13 +1,14 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use solana_program::{
+    account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
+};
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
 use solana_program::sysvar::Sysvar;
-use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
-};
 
+use crate::errors::{assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
@@ -23,6 +24,11 @@ pub fn create_multisig(
     data: CreateMultisigInstructionData,
 ) -> ProgramResult {
     msg!("Instruction: CreateMultisig - {:?}", data);
+    assert_that(
+        data.threshold > 0 && data.threshold <= data.owners.len() as u8,
+        MultisigError::InvalidThreshold,
+    )?;
+
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
     let multisig_signer = next_account_info(accounts_iter)?;
