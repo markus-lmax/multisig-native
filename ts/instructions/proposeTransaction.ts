@@ -2,7 +2,7 @@ import {Buffer} from "node:buffer";
 import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
 import * as borsh from "borsh";
 import {MultisigInstruction} from ".";
-import {Assignable} from "./utils/assignable";
+import {Assignable} from "../assignable";
 
 export class ProposeTransaction extends Assignable {
   toBuffer() {

@@ -1,3 +1,3 @@
 export * from "./instructions";
 export * from "./multisigDsl";
-// export * from './state';
+export * from './state';

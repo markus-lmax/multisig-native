@@ -1,6 +1,6 @@
-import {Keypair, PublicKey, SystemProgram, Transaction} from "@solana/web3.js";
+import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction} from "@solana/web3.js";
 import {BanksTransactionMeta, ProgramTestContext} from "solana-bankrun";
-import {createCreateMultisigInstruction} from "./instructions";
+import {CreateMultisig, MultisigInstruction} from "./instructions";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -9,12 +9,6 @@ export interface MultisigAccount {
   owners: Array<Keypair>;
   threshold: number;
   txMeta: BanksTransactionMeta;
-}
-
-export interface TokenMint {
-  owner: Keypair;
-  account: PublicKey;
-  decimals: number;
 }
 
 export class MultisigDsl {
@@ -37,22 +31,29 @@ export class MultisigDsl {
       [multisig.publicKey.toBuffer()],
       this.programId
     );
-
     const payer = this.programTestContext.payer;
-    const ownerKeys = owners.map(owner => owner.publicKey);
-    const tx = new Transaction().add(createCreateMultisigInstruction(payer.publicKey, this.programId, ownerKeys, threshold, nonce));
+    const createMultisig = new CreateMultisig({
+      instructionDiscriminator: MultisigInstruction.CreateMultisig,
+      owners: owners.map(owner => owner.publicKey.toBuffer()),
+      threshold: threshold,
+      nonce: nonce
+    });
+    const ix = new TransactionInstruction({
+      keys: [
+        {pubkey: multisig.publicKey, isSigner: true, isWritable: true},
+        {pubkey: multisigSigner, isSigner: false, isWritable: false},
+        {pubkey: payer.publicKey, isSigner: true, isWritable: true},
+        {pubkey: SystemProgram.programId, isSigner: false, isWritable: false},
+      ],
+      programId: this.programId,
+      data: createMultisig.toBuffer(),
+    });
+    const tx = new Transaction().add(ix);
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(payer);
+    tx.sign(payer, multisig);
 
     const txMeta = await this.programTestContext.banksClient.processTransaction(tx);
 
-    // TODO await this.program.methods
-    //   .createMultisig(owners.map(owner => owner.publicKey), threshold, nonce)
-    //   .accounts({
-    //     multisig: multisig.publicKey,
-    //   })
-    //   .signers([multisig])
-    //   .rpc();
     if (initialBalance > 0) {
       await this.programTestContext.banksClient.processTransaction(
         new Transaction().add(
