@@ -1,13 +1,13 @@
+use borsh::{BorshDeserialize, BorshSerialize};
+use solana_program::account_info::AccountInfo;
+use solana_program::entrypoint::ProgramResult;
+use solana_program::program_error::ProgramError;
+use solana_program::pubkey::Pubkey;
+
 use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstructionData};
 use crate::instructions::propose_transaction::{
     propose_transaction, ProposeTransactionInstructionData,
 };
-use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::account_info::AccountInfo;
-use solana_program::entrypoint::ProgramResult;
-use solana_program::msg;
-use solana_program::program_error::ProgramError;
-use solana_program::pubkey::Pubkey;
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum MultisigInstruction {
@@ -20,7 +20,6 @@ pub fn process_instruction(
     accounts: &[AccountInfo],
     data: &[u8],
 ) -> ProgramResult {
-    msg!("Our program's Program ID: {}", &program_id);
     if let Ok(instruction) = MultisigInstruction::try_from_slice(data) {
         match instruction {
             MultisigInstruction::CreateMultisig(create_data) => {

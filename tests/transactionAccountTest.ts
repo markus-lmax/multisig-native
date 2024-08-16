@@ -2,7 +2,7 @@ import {describe, test} from "node:test";
 import {PublicKey, Transaction} from "@solana/web3.js";
 import {assert} from "chai";
 import {start} from "solana-bankrun";
-import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "../ts";
+import {createProposeTransactionInstruction} from "../ts";
 
 describe("transaction account", async () => {
   const PROGRAM_ID = PublicKey.unique();
@@ -18,10 +18,9 @@ describe("transaction account", async () => {
     const transaction = await client.processTransaction(tx);
 
     assert(transaction.logMessages[0].startsWith(`Program ${PROGRAM_ID}`));
-    assert(transaction.logMessages[1] === `Program log: Our program's Program ID: ${PROGRAM_ID}`);
-    assert(transaction.logMessages[2].startsWith(`Program log: Instruction: ProposeTransaction - ProposeTransactionInstructionData { instructions: [TransactionInstructionData { program_id:`));
-    assert(transaction.logMessages[3].startsWith(`Program ${PROGRAM_ID} consumed`));
-    assert(transaction.logMessages[4] === `Program ${PROGRAM_ID} success`);
-    assert(transaction.logMessages.length === 5);
+    assert(transaction.logMessages[1].startsWith(`Program log: Instruction: ProposeTransaction - ProposeTransactionInstructionData { instructions: [TransactionInstructionData { program_id:`));
+    assert(transaction.logMessages[2].startsWith(`Program ${PROGRAM_ID} consumed`));
+    assert(transaction.logMessages[3] === `Program ${PROGRAM_ID} success`);
+    assert(transaction.logMessages.length === 4);
   })
 });
