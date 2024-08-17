@@ -59,4 +59,32 @@ describe("create multisig", async () => {
       assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
     }
   });
+
+  test("fail to create multisig with 0 threshold", async () => {
+    try {
+      await dsl.createMultisig(0, 3);
+      assert.fail("Multisig should not have been created");
+    } catch (e: any) {
+      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+    }
+  });
+
+  test("fail to create multisig with 0 threshold and no owners", async () => {
+    try {
+      await dsl.createMultisigWithOwners(0, []);
+      assert.fail("Multisig should not have been created");
+    } catch (e: any) {
+      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+    }
+  });
+
+  test("fail to create multisig with duplicate owners", async () => {
+    const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
+    try {
+      await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB]);
+      assert.fail("Multisig should not have been created");
+    } catch (e: any) {
+      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x1"));
+    }
+  });
 });

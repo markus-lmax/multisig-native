@@ -7,6 +7,8 @@ use thiserror::Error;
 pub enum MultisigError {
     #[error("Threshold must be less than or equal to the number of owners and greater than zero.")]
     InvalidThreshold,
+    #[error("Owners must be unique.")]
+    UniqueOwners,
 }
 
 impl From<MultisigError> for ProgramError {

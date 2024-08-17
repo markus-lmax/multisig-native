@@ -24,6 +24,7 @@ pub fn create_multisig(
     data: CreateMultisigInstructionData,
 ) -> ProgramResult {
     msg!("Instruction: CreateMultisig - {:?}", data);
+    assert_unique_owners(&data.owners)?;
     assert_that(
         data.threshold > 0 && data.threshold <= data.owners.len() as u8,
         MultisigError::InvalidThreshold,
@@ -35,7 +36,7 @@ pub fn create_multisig(
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    validate(
+    validate_accounts(
         program_id,
         multisig_account,
         multisig_signer,
@@ -69,7 +70,17 @@ pub fn create_multisig(
     Ok(())
 }
 
-fn validate(
+fn assert_unique_owners(owners: &[Pubkey]) -> ProgramResult {
+    for (i, owner) in owners.iter().enumerate() {
+        assert_that(
+            !owners.iter().skip(i + 1).any(|item| item == owner),
+            MultisigError::UniqueOwners
+        )?
+    }
+    Ok(())
+}
+
+fn validate_accounts(
     _program_id: &Pubkey,
     _multisig: &AccountInfo,
     _multisig_signer: &AccountInfo,
