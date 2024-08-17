@@ -9,6 +9,8 @@ pub enum MultisigError {
     InvalidThreshold,
     #[error("Owners must be unique.")]
     UniqueOwners,
+    #[error("A seeds constraint was violated.")] // TODO copy/pasted from Anchor, but we only use this for nonce check ATM - better / more specific error message?
+    ConstraintSeeds,
 }
 
 impl From<MultisigError> for ProgramError {

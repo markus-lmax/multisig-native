@@ -25,7 +25,10 @@ export class MultisigDsl {
     return await this.createMultisigWithOwners(threshold, owners, initialBalance);
   }
 
-  async createMultisigWithOwners(threshold: number, owners: Array<Keypair>, initialBalance: number = 0): Promise<MultisigAccount> {
+  async createMultisigWithOwners(threshold: number,
+                                 owners: Array<Keypair>,
+                                 initialBalance: number = 0,
+                                 useInvalidNonce: boolean = false): Promise<MultisigAccount> {
     const multisig = Keypair.generate();
     const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(
       [multisig.publicKey.toBuffer()],
@@ -36,7 +39,7 @@ export class MultisigDsl {
       instructionDiscriminator: MultisigInstruction.CreateMultisig,
       owners: owners.map(owner => owner.publicKey.toBuffer()),
       threshold: threshold,
-      nonce: nonce
+      nonce: useInvalidNonce ? nonce - 1 : nonce
     });
     const ix = new TransactionInstruction({
       keys: [
@@ -74,5 +77,8 @@ export class MultisigDsl {
       threshold: threshold,
       txMeta: txMeta
     };
+  }
+  async createMultisigWithBadNonce(): Promise<MultisigAccount> {
+    return this.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate()], 0, true);
   }
 }

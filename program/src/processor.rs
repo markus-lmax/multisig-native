@@ -4,15 +4,15 @@ use solana_program::entrypoint::ProgramResult;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 
-use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstructionData};
+use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstruction};
 use crate::instructions::propose_transaction::{
-    propose_transaction, ProposeTransactionInstructionData,
+    propose_transaction, ProposeTransactionInstruction,
 };
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum MultisigInstruction {
-    CreateMultisig(CreateMultisigInstructionData),
-    ProposeTransaction(ProposeTransactionInstructionData),
+    CreateMultisig(CreateMultisigInstruction),
+    ProposeTransaction(ProposeTransactionInstruction),
 }
 
 pub fn process_instruction(
@@ -21,12 +21,12 @@ pub fn process_instruction(
     data: &[u8],
 ) -> ProgramResult {
     if let Ok(instruction) = MultisigInstruction::try_from_slice(data) {
-        match instruction {
+        return match instruction {
             MultisigInstruction::CreateMultisig(create_data) => {
-                return create_multisig(program_id, accounts, create_data)
+                create_multisig(program_id, accounts, create_data)
             }
             MultisigInstruction::ProposeTransaction(propose_data) => {
-                return propose_transaction(program_id, accounts, propose_data)
+                propose_transaction(program_id, accounts, propose_data)
             }
         }
     }

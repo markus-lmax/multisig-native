@@ -1,18 +1,18 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
-};
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
 use solana_program::sysvar::Sysvar;
+use solana_program::{
+    account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
+};
 
 use crate::errors::{assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct CreateMultisigInstructionData {
+pub struct CreateMultisigInstruction {
     pub owners: Vec<Pubkey>,
     pub threshold: u8,
     pub nonce: u8,
@@ -21,33 +21,21 @@ pub struct CreateMultisigInstructionData {
 pub fn create_multisig(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    data: CreateMultisigInstructionData,
+    instruction: CreateMultisigInstruction,
 ) -> ProgramResult {
-    msg!("Instruction: CreateMultisig - {:?}", data);
-    assert_unique_owners(&data.owners)?;
-    assert_that(
-        data.threshold > 0 && data.threshold <= data.owners.len() as u8,
-        MultisigError::InvalidThreshold,
-    )?;
-
+    msg!("invoke create_multisig - {:?}", instruction);
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
     let multisig_signer = next_account_info(accounts_iter)?;
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    validate_accounts(
-        program_id,
-        multisig_account,
-        multisig_signer,
-        payer,
-        system_program,
-        &data,
-    )?;
+    validate(program_id, multisig_account, multisig_signer, payer, system_program, &instruction)?;
+
     let multisig_data = Multisig {
-        owners: data.owners,
-        threshold: data.threshold,
-        nonce: data.nonce,
+        owners: instruction.owners,
+        threshold: instruction.threshold,
+        nonce: instruction.nonce,
         owner_set_seqno: 0,
     };
     invoke(
@@ -58,15 +46,35 @@ pub fn create_multisig(
             multisig_data.len().try_into().unwrap(),
             program_id,
         ),
-        &[
-            payer.clone(),
-            multisig_account.clone(),
-            system_program.clone(),
-        ],
+        &[payer.clone(), multisig_account.clone(), system_program.clone(), ],
     )?;
-
     multisig_data.serialize(&mut &mut multisig_account.data.borrow_mut()[..])?;
+    Ok(())
+}
 
+fn validate(
+    program_id: &Pubkey,
+    multisig: &AccountInfo,
+    multisig_signer: &AccountInfo,
+    _payer: &AccountInfo,
+    _system_program: &AccountInfo,
+    instruction: &CreateMultisigInstruction,
+) -> ProgramResult {
+    // TODO test and implement anchor-internal checks
+    assert_unique_owners(&instruction.owners)?;
+    assert_that(
+        instruction.threshold > 0 && instruction.threshold <= instruction.owners.len() as u8,
+        MultisigError::InvalidThreshold,
+    )?;
+    let pda_address = Pubkey::create_program_address(
+        &[multisig.key.as_ref(), &[instruction.nonce][..]],
+        &program_id,
+    )
+        .map_err(|_| MultisigError::ConstraintSeeds)?;
+    assert_that(
+        multisig_signer.key.as_ref() == pda_address.as_ref(),
+        MultisigError::ConstraintSeeds,
+    )?;
     Ok(())
 }
 
@@ -74,20 +82,8 @@ fn assert_unique_owners(owners: &[Pubkey]) -> ProgramResult {
     for (i, owner) in owners.iter().enumerate() {
         assert_that(
             !owners.iter().skip(i + 1).any(|item| item == owner),
-            MultisigError::UniqueOwners
+            MultisigError::UniqueOwners,
         )?
     }
-    Ok(())
-}
-
-fn validate_accounts(
-    _program_id: &Pubkey,
-    _multisig: &AccountInfo,
-    _multisig_signer: &AccountInfo,
-    _payer: &AccountInfo,
-    _system_program: &AccountInfo,
-    _data: &CreateMultisigInstructionData,
-) -> ProgramResult {
-    // TODO implement checks
     Ok(())
 }

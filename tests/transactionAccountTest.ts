@@ -18,7 +18,7 @@ describe("transaction account", async () => {
     const transaction = await client.processTransaction(tx);
 
     assert(transaction.logMessages[0].startsWith(`Program ${PROGRAM_ID}`));
-    assert(transaction.logMessages[1].startsWith(`Program log: Instruction: ProposeTransaction - ProposeTransactionInstructionData { instructions: [TransactionInstructionData { program_id:`));
+    assert(transaction.logMessages[1].startsWith(`Program log: invoke propose_transaction - ProposeTransactionInstruction { instructions: [TransactionInstructionData { program_id:`));
     assert(transaction.logMessages[2].startsWith(`Program ${PROGRAM_ID} consumed`));
     assert(transaction.logMessages[3] === `Program ${PROGRAM_ID} success`);
     assert(transaction.logMessages.length === 4);

@@ -20,7 +20,7 @@ describe("create multisig", async () => {
     const logs = multisig.txMeta.logMessages;
 
     assert(logs[0].startsWith(`Program ${programId}`));
-    assert(logs[1].startsWith(`Program log: Instruction: CreateMultisig - CreateMultisigInstructionData { owners: [`));
+    assert(logs[1].startsWith(`Program log: invoke create_multisig - CreateMultisigInstruction { owners: [`));
     assert(logs[logs.length-1] === `Program ${programId} success`);
 
     const actualMultisig = await getMultisig(multisig.address);
@@ -50,17 +50,18 @@ describe("create multisig", async () => {
     assert.strictEqual(actualMultisig2["owner_set_seqno"], 0);
   })
 
-  test("fail to create multisig if provided threshold is greater than number of owners", async () => {
+  test("do not create multisig if provided threshold is greater than number of owners", async () => {
     try {
       await dsl.createMultisig(4, 3);
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
-      // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs) - is there a way to retain the anchor behaviour?
+      // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs)
+      //      -> is there a way to retain the anchor behaviour (custom error message appearing in the exception)
       assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
     }
   });
 
-  test("fail to create multisig with 0 threshold", async () => {
+  test("do not create multisig with 0 threshold", async () => {
     try {
       await dsl.createMultisig(0, 3);
       assert.fail("Multisig should not have been created");
@@ -69,7 +70,7 @@ describe("create multisig", async () => {
     }
   });
 
-  test("fail to create multisig with 0 threshold and no owners", async () => {
+  test("do not create multisig with 0 threshold and no owners", async () => {
     try {
       await dsl.createMultisigWithOwners(0, []);
       assert.fail("Multisig should not have been created");
@@ -78,13 +79,22 @@ describe("create multisig", async () => {
     }
   });
 
-  test("fail to create multisig with duplicate owners", async () => {
+  test("do not create multisig with duplicate owners", async () => {
     const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
     try {
       await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB]);
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
       assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x1"));
+    }
+  });
+
+  test("do not create multisig account with bad nonce", async () => {
+    try {
+      await dsl.createMultisigWithBadNonce();
+      assert.fail("Multisig should not have been created");
+    } catch (e: any) {
+      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x2"));
     }
   });
 });
