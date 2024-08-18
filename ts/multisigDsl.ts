@@ -1,12 +1,12 @@
 import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction} from "@solana/web3.js";
 import {BanksTransactionMeta, ProgramTestContext} from "solana-bankrun";
-import {CreateMultisig, MultisigInstruction} from "./instructions";
+import {CreateMultisig, createProposeTransactionInstruction, MultisigInstruction} from "./instructions";
 
 export interface MultisigAccount {
   address: PublicKey;
   signer: PublicKey;
   nonce: number;
-  owners: Array<Keypair>;
+  owners: Keypair[];
   threshold: number;
   txMeta: BanksTransactionMeta;
 }
@@ -21,12 +21,12 @@ export class MultisigDsl {
   }
 
   async createMultisig(threshold: number, numberOfOwners: number, initialBalance: number = 0): Promise<MultisigAccount> {
-    const owners: Array<Keypair> = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
+    const owners: Keypair[] = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
     return await this.createMultisigWithOwners(threshold, owners, initialBalance);
   }
 
   async createMultisigWithOwners(threshold: number,
-                                 owners: Array<Keypair>,
+                                 owners: Keypair[],
                                  initialBalance: number = 0,
                                  useInvalidNonce: boolean = false): Promise<MultisigAccount> {
     const multisig = Keypair.generate();
@@ -78,7 +78,28 @@ export class MultisigDsl {
       txMeta: txMeta
     };
   }
+
   async createMultisigWithBadNonce(): Promise<MultisigAccount> {
     return this.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate()], 0, true);
+  }
+
+  async proposeTransaction(proposer: Keypair,
+                           instructions: TransactionInstruction[],
+                           multisig: PublicKey,
+                           transactionAddress?: Keypair): Promise<[PublicKey, BanksTransactionMeta]> {
+    let transactionAccount = transactionAddress ? transactionAddress : Keypair.generate();
+    let ix = createProposeTransactionInstruction(multisig,
+      transactionAccount.publicKey,
+      proposer.publicKey,
+      this.programTestContext.payer.publicKey,
+      this.programId,
+      instructions);
+    const tx = new Transaction().add(ix);
+    tx.recentBlockhash = this.programTestContext.lastBlockhash;
+    tx.sign(this.programTestContext.payer, proposer, transactionAccount);
+
+    let txMeta = await this.programTestContext.banksClient.processTransaction(tx);
+
+    return [transactionAccount.publicKey, txMeta];
   }
 }

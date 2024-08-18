@@ -1,36 +1,53 @@
 import {Buffer} from "node:buffer";
-import {type PublicKey, TransactionInstruction} from "@solana/web3.js";
+import {type PublicKey, SystemProgram, TransactionInstruction} from "@solana/web3.js";
 import * as borsh from "borsh";
 import {MultisigInstruction} from ".";
 import {Assignable} from "../assignable";
 
-export class ProposeTransaction extends Assignable {
+export function createProposeTransactionInstruction(multisigAccount: PublicKey,
+                                                    transactionAccount: PublicKey,
+                                                    proposer: PublicKey,
+                                                    payer: PublicKey,
+                                                    programId: PublicKey,
+                                                    instructions: TransactionInstruction[]): TransactionInstruction {
+  const proposeTransactionInstruction = new ProposeTransactionInstruction({
+    instructionDiscriminator: MultisigInstruction.ProposeTransaction,
+    instructions: instructions.map(ix => {
+      return {
+        program_id: ix.programId.toBuffer(),
+        accounts: ix.keys.map(key => { return { pubkey: key.pubkey.toBuffer(), is_signer: key.isSigner, is_writable: key.isWritable }}),
+        data: ix.data
+      };
+    })
+  });
+  return new TransactionInstruction({
+    keys: [
+      {pubkey: multisigAccount, isSigner: false, isWritable: false},
+      {pubkey: transactionAccount, isSigner: true, isWritable: true},
+      {pubkey: proposer, isSigner: true, isWritable: false},
+      {pubkey: payer, isSigner: true, isWritable: false},
+      {pubkey: SystemProgram.programId, isSigner: false, isWritable: false},
+    ],
+    programId: programId,
+    data: proposeTransactionInstruction.toBuffer(),
+  });
+}
+
+class ProposeTransactionInstruction extends Assignable {
   toBuffer() {
     return Buffer.from(borsh.serialize(ProposeTransactionSchema, this));
   }
 }
 
-const ProposeTransactionSchema =
-  {
-    struct: {
-      instructionDiscriminator: "u8",
-      instructions: {array: {type: {struct: {
-        program_id: { array: {type: "u8", len: 32}}
-      }}}},
-    },
-  };
-
-export function createProposeTransactionInstruction(payer: PublicKey, programId: PublicKey, instructions: PublicKey[]): TransactionInstruction {
-  const proposeTransaction = new ProposeTransaction({
-    instructionDiscriminator: MultisigInstruction.ProposeTransaction,
-    instructions: instructions.map(programId => ({ program_id: programId.toBuffer() }))
-  });
-
-  return new TransactionInstruction({
-    keys: [
-      {pubkey: payer, isSigner: true, isWritable: true},
-    ],
-    programId: programId,
-    data: proposeTransaction.toBuffer(),
-  });
-}
+const ProposeTransactionSchema = { struct: {
+  instructionDiscriminator: "u8",
+  instructions: { array: { type: { struct: {
+    program_id: {array: {type: "u8", len: 32}},
+    accounts: { array: { type: { struct: {
+      pubkey: {array: {type: "u8", len: 32}},
+      is_signer: "bool",
+      is_writable: "bool"
+    }}}},
+    data: {array: {type: "u8"}}
+  }}}},
+}};

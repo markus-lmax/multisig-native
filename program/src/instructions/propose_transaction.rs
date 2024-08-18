@@ -2,18 +2,18 @@ use borsh_derive::{BorshDeserialize, BorshSerialize};
 use solana_program::pubkey::Pubkey;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
-// #[derive(BorshSerialize, BorshDeserialize, Debug)]
-// pub struct TransactionAccount {
-//     pub pubkey: Pubkey,
-//     pub is_signer: bool,
-//     pub is_writable: bool,
-// }
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub struct TransactionInstructionAccount {
+    pub pubkey: Pubkey,
+    pub is_signer: bool,
+    pub is_writable: bool,
+}
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct TransactionInstructionData {
     pub program_id: Pubkey,
-    // pub accounts: Vec<TransactionAccount>,
-    // pub data: Vec<u8>,
+    pub accounts: Vec<TransactionInstructionAccount>,
+    pub data: Vec<u8>,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
