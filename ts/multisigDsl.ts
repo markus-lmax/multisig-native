@@ -1,6 +1,6 @@
 import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction} from "@solana/web3.js";
 import {BanksTransactionMeta, ProgramTestContext} from "solana-bankrun";
-import {CreateMultisig, createProposeTransactionInstruction, MultisigInstruction} from "./instructions";
+import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "./instructions";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -35,22 +35,9 @@ export class MultisigDsl {
       this.programId
     );
     const payer = this.programTestContext.payer;
-    const createMultisig = new CreateMultisig({
-      instructionDiscriminator: MultisigInstruction.CreateMultisig,
-      owners: owners.map(owner => owner.publicKey.toBuffer()),
-      threshold: threshold,
-      nonce: useInvalidNonce ? nonce - 1 : nonce
-    });
-    const ix = new TransactionInstruction({
-      keys: [
-        {pubkey: multisig.publicKey, isSigner: true, isWritable: true},
-        {pubkey: multisigSigner, isSigner: false, isWritable: false},
-        {pubkey: payer.publicKey, isSigner: true, isWritable: true},
-        {pubkey: SystemProgram.programId, isSigner: false, isWritable: false},
-      ],
-      programId: this.programId,
-      data: createMultisig.toBuffer(),
-    });
+    const ix = createCreateMultisigInstruction(
+      this.programId, threshold, owners, useInvalidNonce ? nonce - 1 : nonce, multisig.publicKey, multisigSigner, payer.publicKey
+    );
     const tx = new Transaction().add(ix);
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
     tx.sign(payer, multisig);
