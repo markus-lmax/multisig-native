@@ -21,7 +21,7 @@ describe("create multisig", async () => {
 
     assert(logs[0].startsWith(`Program ${programId}`));
     assert(logs[1].startsWith(`Program log: invoke create_multisig - CreateMultisigInstruction { owners: [`));
-    assert(logs[logs.length-1] === `Program ${programId} success`);
+    assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
 
     const actualMultisig = await getMultisig(multisig.address);
 
@@ -57,7 +57,7 @@ describe("create multisig", async () => {
     } catch (e: any) {
       // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs)
       //      -> is there a way to retain the anchor behaviour (custom error message appearing in the exception)
-      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+      assert(e.message.endsWith("Error processing Instruction 0: custom program error: 0x0"));
     }
   });
 
@@ -66,7 +66,7 @@ describe("create multisig", async () => {
       await dsl.createMultisig(0, 3);
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
-      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+      assert(e.message.endsWith("Error processing Instruction 0: custom program error: 0x0"));
     }
   });
 
@@ -75,7 +75,7 @@ describe("create multisig", async () => {
       await dsl.createMultisigWithOwners(0, []);
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
-      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x0"));
+      assert(e.message.endsWith("Error processing Instruction 0: custom program error: 0x0"));
     }
   });
 
@@ -85,7 +85,7 @@ describe("create multisig", async () => {
       await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB]);
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
-      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x1"));
+      assert(e.message.endsWith("Error processing Instruction 0: custom program error: 0x1"));
     }
   });
 
@@ -94,7 +94,7 @@ describe("create multisig", async () => {
       await dsl.createMultisigWithBadNonce();
       assert.fail("Multisig should not have been created");
     } catch (e: any) {
-      assert.match(e.message, new RegExp(".*Error processing Instruction 0: custom program error: 0x2"));
+      assert(e.message.endsWith(("Error processing Instruction 0: custom program error: 0x2")));
     }
   });
 });
