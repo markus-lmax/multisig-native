@@ -41,12 +41,12 @@ describe("create multisig", async () => {
 
     assert.strictEqual(actualMultisig1["nonce"], multisig1.nonce);
     assert.strictEqual(actualMultisig1["threshold"], multisig1.threshold);
-    assert.deepEqual(actualMultisig1["owners"], multisig1.owners.map(owner => Array.from(owner.publicKey.toBytes())));
+    assert.deepStrictEqual(actualMultisig1["owners"], multisig1.owners.map(owner => Array.from(owner.publicKey.toBytes())));
     assert.strictEqual(actualMultisig1["owner_set_seqno"], 0);
 
     assert.strictEqual(actualMultisig2["nonce"], multisig2.nonce);
     assert.strictEqual(actualMultisig2["threshold"], multisig2.threshold);
-    assert.deepEqual(actualMultisig2["owners"], multisig2.owners.map(owner => Array.from(owner.publicKey.toBytes())));
+    assert.deepStrictEqual(actualMultisig2["owners"], multisig2.owners.map(owner => Array.from(owner.publicKey.toBytes())));
     assert.strictEqual(actualMultisig2["owner_set_seqno"], 0);
   })
 

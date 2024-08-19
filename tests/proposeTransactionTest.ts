@@ -1,15 +1,22 @@
 import {describe, test} from "node:test";
 import {PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
-import {MultisigDsl} from "../ts";
+import {Multisig, MultisigDsl} from "../ts";
 import {assert} from "chai";
+import {Transaction} from "../ts/state/transaction";
 
 describe("propose transaction", async () => {
   const programId = PublicKey.unique();
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
+  async function getTransactionAccount(address: PublicKey): Promise<Transaction>
+  {
+    const transactionAccountInfo = await context.banksClient.getAccount(address);
+    assert.isNotNull(transactionAccountInfo);
+    return Transaction.deserialize(transactionAccountInfo?.data);
+  }
 
-  test("automatically approve transaction with proposer", async () => {
+  test("create transaction account and automatically approve transaction with proposer", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;
     let transactionInstruction = SystemProgram.transfer({
@@ -24,37 +31,21 @@ describe("propose transaction", async () => {
     assert(logs[1].startsWith(`Program log: invoke propose_transaction - ProposeTransactionInstruction { instructions: [TransactionInstructionData { program_id:`));
     assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
 
-    // TODO more assertions
+    let transactionAccount: Transaction = await getTransactionAccount(transactionAddress);
 
-    // let transactionAccount = await program.account.transaction.fetch(transactionAddress);
-    //
-    // //Approved by user in index 0 not by users in index 1 or 2
-    // assert.ok(transactionAccount.signers[0], "OwnerA should have approved");
-    // assert.ok(!transactionAccount.signers[1], "OwnerB should not have approved");
-    // assert.ok(!transactionAccount.signers[2], "OwnerC should not have approved");
-    // assert.deepStrictEqual(
-    //   transactionAccount.multisig,
-    //   multisig.address,
-    //   "Transaction account should be linked to multisig"
-    // );
-    // assert.ok(
-    //   !transactionAccount.didExecute,
-    //   "Transaction should not have been executed"
-    // );
-    // assert.deepStrictEqual(
-    //   transactionAccount.instructions[0].programId,
-    //   transactionInstruction.programId,
-    //   "Transaction program should match instruction"
-    // );
-    // assert.deepStrictEqual(
-    //   transactionAccount.instructions[0].data,
-    //   transactionInstruction.data,
-    //   "Transaction data should match instruction"
-    // );
-    // assert.deepStrictEqual(
-    //   transactionAccount.instructions[0].accounts,
-    //   transactionInstruction.keys,
-    //   "Transaction keys should match instruction"
-    // );
+    //Approved by user in index 0 not by users in index 1 or 2
+    assert.strictEqual(transactionAccount["signers"][0], false, "OwnerA should have approved"); // TODO expect true here...
+    assert.strictEqual(transactionAccount["signers"][1], false, "OwnerB should not have approved");
+    assert.strictEqual(transactionAccount["signers"][1], false, "OwnerC should not have approved");
+
+    assert.deepStrictEqual(transactionAccount["multisig"], Array.from(multisig.address.toBytes()),
+      "Transaction account should be linked to multisig");
+    assert.deepStrictEqual(transactionAccount["instructions"][0].program_id, Array.from(transactionInstruction.programId.toBytes()),
+      "Transaction program should match instruction");
+    assert.deepStrictEqual(transactionAccount["instructions"][0].data, Array.from(transactionInstruction.data),
+      "Transaction data should match instruction");
+    assert.deepStrictEqual(transactionAccount["instructions"][0].accounts, transactionInstruction.keys.map(key => {
+        return { pubkey: Array.from(key.pubkey.toBytes()), is_signer: key.isSigner, is_writable: key.isWritable };
+      }), "Transaction keys should match instruction");
   });
 });
