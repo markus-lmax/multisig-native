@@ -1,7 +1,7 @@
 import {describe, test} from "node:test";
 import {PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
-import {Multisig, MultisigDsl} from "../ts";
+import {MultisigDsl} from "../ts";
 import {assert} from "chai";
 import {Transaction} from "../ts/state/transaction";
 
@@ -34,10 +34,7 @@ describe("propose transaction", async () => {
     let transactionAccount: Transaction = await getTransactionAccount(transactionAddress);
 
     //Approved by user in index 0 not by users in index 1 or 2
-    assert.strictEqual(transactionAccount["signers"][0], false, "OwnerA should have approved"); // TODO expect true here...
-    assert.strictEqual(transactionAccount["signers"][1], false, "OwnerB should not have approved");
-    assert.strictEqual(transactionAccount["signers"][1], false, "OwnerC should not have approved");
-
+    assert.deepStrictEqual(transactionAccount["signers"], [true, false, false], "Only ownerA should have approved");
     assert.deepStrictEqual(transactionAccount["multisig"], Array.from(multisig.address.toBytes()),
       "Transaction account should be linked to multisig");
     assert.deepStrictEqual(transactionAccount["instructions"][0].program_id, Array.from(transactionInstruction.programId.toBytes()),

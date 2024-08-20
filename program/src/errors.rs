@@ -11,6 +11,8 @@ pub enum MultisigError {
     UniqueOwners,
     #[error("A seeds constraint was violated.")] // TODO copy/pasted from Anchor, but we only use this for nonce check ATM - better / more specific error message?
     ConstraintSeeds,
+    #[error("The given owner is not part of this multisig.")]
+    InvalidOwner,
 }
 
 impl From<MultisigError> for ProgramError {

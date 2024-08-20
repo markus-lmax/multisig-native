@@ -6,6 +6,8 @@ use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
 use solana_program::sysvar::Sysvar;
 
+use crate::errors::MultisigError;
+use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
@@ -44,16 +46,30 @@ pub fn propose_transaction(
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
     let transaction_account = next_account_info(accounts_iter)?;
-    let _proposer = next_account_info(accounts_iter)?;
+    let proposer = next_account_info(accounts_iter)?;
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
     // TODO validate(program_id, multisig_account, transaction_account, proposer, payer, system_program, &instruction)?;
+    // TODO if (!_proposer.is_signer) (add test for this)
+    // {
+    //     //     #[msg("The given account did not sign")]
+    //     //     AccountNotSigner,
+    //
+    // }
+
+    let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
+    let owner_index = multisig.owners.iter()
+        .position(|a| a == proposer.key)
+        .ok_or(MultisigError::InvalidOwner)?;
+    let mut signers = Vec::new();
+    signers.resize(multisig.owners.len(), false);
+    signers[owner_index] = true;
 
     let transaction_data: Transaction = Transaction {
         multisig: *multisig_account.key,
         instructions: instruction.instructions,
-        signers: [false, false].to_vec(),
+        signers,
         owner_set_seqno: 0,
     };
     invoke(
@@ -64,11 +80,9 @@ pub fn propose_transaction(
             transaction_data.len().try_into().unwrap(),
             program_id,
         ),
-        &[payer.clone(), transaction_account.clone(), system_program.clone(), ],
+        &[payer.clone(), transaction_account.clone(), system_program.clone()],
     )?;
     transaction_data.serialize(&mut &mut transaction_account.data.borrow_mut()[..])?;
-
-    // TODO approve/sign with proposer or check that proposer has signed (?)
 
     Ok(())
 }
