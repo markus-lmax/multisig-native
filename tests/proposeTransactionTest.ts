@@ -45,4 +45,15 @@ describe("propose transaction", async () => {
         return { pubkey: Array.from(key.pubkey.toBytes()), is_signer: key.isSigner, is_writable: key.isWritable };
       }), "Transaction keys should match instruction");
   });
+
+  test("validate system program id", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+
+    try {
+      await dsl.proposeTransactionWithIncorrectSystemProgram(multisig.owners[0], [], multisig.address);
+      assert.fail("Transaction should not have been proposed");
+    } catch (e: any) {
+      assert(e.message.endsWith("Error processing Instruction 0: incorrect program id for instruction"));
+    }
+  })
 });

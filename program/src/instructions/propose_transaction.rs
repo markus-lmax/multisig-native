@@ -1,10 +1,12 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction};
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
+use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
+use solana_program::system_program;
 use solana_program::sysvar::Sysvar;
+use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction};
 
 use crate::errors::MultisigError;
 use crate::state::multisig::Multisig;
@@ -50,13 +52,7 @@ pub fn propose_transaction(
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    // TODO validate(program_id, multisig_account, transaction_account, proposer, payer, system_program, &instruction)?;
-    // TODO if (!_proposer.is_signer) (add test for this)
-    // {
-    //     //     #[msg("The given account did not sign")]
-    //     //     AccountNotSigner,
-    //
-    // }
+    validate(program_id, multisig_account, transaction_account, proposer, payer, system_program, &instruction)?;
 
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
     let owner_index = multisig.owners.iter()
@@ -86,3 +82,26 @@ pub fn propose_transaction(
 
     Ok(())
 }
+
+fn validate(
+    _program_id: &Pubkey,
+    _multisig: &AccountInfo,
+    _transaction_account: &AccountInfo,
+    _proposer: &AccountInfo,
+    _payer: &AccountInfo,
+    system_program: &AccountInfo,
+    _instruction: &ProposeTransactionInstruction,
+) -> ProgramResult {
+    // TODO if (!_proposer.is_signer) (add test for this) TODO same for payer
+    // {
+    //     //     #[msg("The given account did not sign")]
+    //     //     AccountNotSigner,
+    //
+    // }
+    // TODO empty instruction list
+    if system_program.key != &system_program::id() {
+        return Err(ProgramError::IncorrectProgramId);
+    }
+    Ok(())
+}
+

@@ -1,4 +1,4 @@
-import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction} from "@solana/web3.js";
+import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
 import {BanksTransactionMeta, ProgramTestContext} from "solana-bankrun";
 import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "./instructions";
 
@@ -73,14 +73,16 @@ export class MultisigDsl {
   async proposeTransaction(proposer: Keypair,
                            instructions: TransactionInstruction[],
                            multisig: PublicKey,
-                           transactionAddress?: Keypair): Promise<[PublicKey, BanksTransactionMeta]> {
+                           transactionAddress?: Keypair,
+                           systemProgramId: PublicKey = SystemProgram.programId): Promise<[PublicKey, BanksTransactionMeta]> {
     let transactionAccount = transactionAddress ? transactionAddress : Keypair.generate();
     let ix = createProposeTransactionInstruction(multisig,
-      transactionAccount.publicKey,
-      proposer.publicKey,
-      this.programTestContext.payer.publicKey,
-      this.programId,
-      instructions);
+        transactionAccount.publicKey,
+        proposer.publicKey,
+        this.programTestContext.payer.publicKey,
+        this.programId,
+        instructions,
+        systemProgramId);
     const tx = new Transaction().add(ix);
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
     tx.sign(this.programTestContext.payer, proposer, transactionAccount);
@@ -89,4 +91,11 @@ export class MultisigDsl {
 
     return [transactionAccount.publicKey, txMeta];
   }
+
+  async proposeTransactionWithIncorrectSystemProgram(proposer: Keypair,
+                                                     instructions: TransactionInstruction[],
+                                                     multisig: PublicKey): Promise<[PublicKey, BanksTransactionMeta]> {
+    return this.proposeTransaction(proposer, instructions, multisig, Keypair.generate(), VoteProgram.programId);
+  }
+
 }
