@@ -1,3 +1,5 @@
+use crate::errors::{assert_that, MultisigError};
+use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
@@ -7,9 +9,6 @@ use solana_program::sysvar::Sysvar;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
 };
-
-use crate::errors::{assert_that, MultisigError};
-use crate::state::multisig::Multisig;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct CreateMultisigInstruction {
@@ -69,10 +68,14 @@ fn validate(
     let pda_address = Pubkey::create_program_address(
         &[multisig.key.as_ref(), &[instruction.nonce][..]],
         &program_id,
-    )
-        .map_err(|_| MultisigError::ConstraintSeeds)?;
+    );
+    if pda_address.is_err() {
+        // TODO ugly hack to re-use the custom log message inside `assert_that` -
+        //  is there nicer way to do this via `map_err` or something similar?
+        assert_that(false, MultisigError::ConstraintSeeds)?;
+    }
     assert_that(
-        multisig_signer.key.as_ref() == pda_address.as_ref(),
+        multisig_signer.key.as_ref() == pda_address?.as_ref(),
         MultisigError::ConstraintSeeds,
     )?;
     Ok(())
