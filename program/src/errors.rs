@@ -13,6 +13,8 @@ pub enum MultisigError {
     ConstraintSeeds,
     #[error("The given owner is not part of this multisig.")]
     InvalidOwner,
+    #[error("The proposer must be a signer.")]
+    ProposerNotSigner,
 }
 
 impl From<MultisigError> for ProgramError {

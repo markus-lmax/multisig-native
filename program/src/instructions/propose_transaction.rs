@@ -8,7 +8,7 @@ use solana_program::system_program;
 use solana_program::sysvar::Sysvar;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction};
 
-use crate::errors::MultisigError;
+use crate::errors::{assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 
@@ -87,17 +87,12 @@ fn validate(
     _program_id: &Pubkey,
     _multisig: &AccountInfo,
     _transaction_account: &AccountInfo,
-    _proposer: &AccountInfo,
+    proposer: &AccountInfo,
     _payer: &AccountInfo,
     system_program: &AccountInfo,
     _instruction: &ProposeTransactionInstruction,
 ) -> ProgramResult {
-    // TODO if (!_proposer.is_signer) (add test for this) TODO same for payer
-    // {
-    //     //     #[msg("The given account did not sign")]
-    //     //     AccountNotSigner,
-    //
-    // }
+    assert_that(proposer.is_signer, MultisigError::ProposerNotSigner)?;
     // TODO empty instruction list
     if system_program.key != &system_program::id() {
         return Err(ProgramError::IncorrectProgramId);

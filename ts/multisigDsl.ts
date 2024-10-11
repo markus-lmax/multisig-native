@@ -1,5 +1,5 @@
 import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
-import {BanksTransactionMeta, ProgramTestContext} from "solana-bankrun";
+import {BanksTransactionMeta, BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
 import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "./instructions";
 
 export interface MultisigAccount {
@@ -74,7 +74,8 @@ export class MultisigDsl {
                            instructions: TransactionInstruction[],
                            multisig: PublicKey,
                            transactionAddress?: Keypair,
-                           systemProgramId: PublicKey = SystemProgram.programId): Promise<[PublicKey, BanksTransactionMeta]> {
+                           proposerIsSigner = true,
+                           systemProgramId: PublicKey = SystemProgram.programId): Promise<[PublicKey, BanksTransactionResultWithMeta]> {
     let transactionAccount = transactionAddress ? transactionAddress : Keypair.generate();
     let ix = createProposeTransactionInstruction(multisig,
         transactionAccount.publicKey,
@@ -82,20 +83,29 @@ export class MultisigDsl {
         this.programTestContext.payer.publicKey,
         this.programId,
         instructions,
+        proposerIsSigner,
         systemProgramId);
     const tx = new Transaction().add(ix);
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(this.programTestContext.payer, proposer, transactionAccount);
-
-    let txMeta = await this.programTestContext.banksClient.processTransaction(tx);
+    if (proposerIsSigner) {
+      tx.sign(this.programTestContext.payer, proposer, transactionAccount);
+    } else {
+      tx.sign(this.programTestContext.payer, transactionAccount);
+    }
+    let txMeta = await this.programTestContext.banksClient.tryProcessTransaction(tx);
 
     return [transactionAccount.publicKey, txMeta];
   }
 
   async proposeTransactionWithIncorrectSystemProgram(proposer: Keypair,
                                                      instructions: TransactionInstruction[],
-                                                     multisig: PublicKey): Promise<[PublicKey, BanksTransactionMeta]> {
-    return this.proposeTransaction(proposer, instructions, multisig, Keypair.generate(), VoteProgram.programId);
+                                                     multisig: PublicKey): Promise<[PublicKey, BanksTransactionResultWithMeta]> {
+    return this.proposeTransaction(proposer, instructions, multisig, Keypair.generate(), true, VoteProgram.programId);
   }
 
+  async proposeTransactionWithProposerNotSigner(proposer: Keypair,
+                                                instructions: TransactionInstruction[],
+                                                multisig: PublicKey): Promise<[PublicKey, BanksTransactionResultWithMeta]> {
+    return this.proposeTransaction(proposer, instructions, multisig, Keypair.generate(), false, SystemProgram.programId);
+  }
 }

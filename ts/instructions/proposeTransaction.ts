@@ -10,7 +10,9 @@ export function createProposeTransactionInstruction(multisigAccount: PublicKey,
                                                     payer: PublicKey,
                                                     programId: PublicKey,
                                                     instructions: TransactionInstruction[],
-                                                    systemProgramId: PublicKey = SystemProgram.programId): TransactionInstruction {
+                                                    proposerIsSigner,
+                                                    systemProgramId,
+                                                    ): TransactionInstruction {
   const proposeTransactionInstruction = new ProposeTransactionInstruction({
     instructionDiscriminator: MultisigInstruction.ProposeTransaction,
     instructions: instructions.map(ix => {
@@ -25,7 +27,7 @@ export function createProposeTransactionInstruction(multisigAccount: PublicKey,
     keys: [
       {pubkey: multisigAccount, isSigner: false, isWritable: false},
       {pubkey: transactionAccount, isSigner: true, isWritable: true},
-      {pubkey: proposer, isSigner: true, isWritable: false},
+      {pubkey: proposer, isSigner: proposerIsSigner, isWritable: false},
       {pubkey: payer, isSigner: true, isWritable: false},
       {pubkey: systemProgramId, isSigner: false, isWritable: false},
     ],

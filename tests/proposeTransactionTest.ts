@@ -26,7 +26,9 @@ describe("propose transaction", async () => {
     });
     const [transactionAddress, txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
 
-    const logs = txMeta.logMessages;
+    assert.strictEqual(txMeta.result, null);
+
+    const logs = txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));
     assert(logs[1].startsWith(`Program log: invoke propose_transaction - ProposeTransactionInstruction { instructions: [TransactionInstructionData { program_id:`));
     assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
@@ -49,11 +51,21 @@ describe("propose transaction", async () => {
   test("validate system program id", async () => {
     const multisig = await dsl.createMultisig(2, 3);
 
-    try {
-      await dsl.proposeTransactionWithIncorrectSystemProgram(multisig.owners[0], [], multisig.address);
-      assert.fail("Transaction should not have been proposed");
-    } catch (e: any) {
-      assert(e.message.endsWith("Error processing Instruction 0: incorrect program id for instruction"));
-    }
+    const [_, txMeta] = await dsl.proposeTransactionWithIncorrectSystemProgram(multisig.owners[0], [], multisig.address);
+
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: incorrect program id for instruction");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith("failed: incorrect program id for instruction"));
+  })
+
+  // the anchor version also validates that the payer is a signer (via the `Signer` trait), but it feels this is implicit
+  // (at least I did not manage to write a test that would successfully get to the propose_transaction method without the payer having signed)
+  test("validate proposer is signer", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+
+    const [_, txMeta] = await dsl.proposeTransactionWithProposerNotSigner(multisig.owners[0], [], multisig.address);
+
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x4");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: ProposerNotSigner (The proposer must be a signer.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x4"));
   })
 });
