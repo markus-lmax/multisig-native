@@ -68,4 +68,14 @@ describe("propose transaction", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: ProposerNotSigner (The proposer must be a signer.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x4"));
   })
+
+  test("validate at least one instruction", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+
+    const [_, txMeta] = await dsl.proposeTransaction(multisig.owners[0], [], multisig.address);
+
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x5");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: MissingInstructions (The number of instructions must be greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x5"));
+  })
 });

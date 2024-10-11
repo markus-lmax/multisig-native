@@ -90,13 +90,13 @@ fn validate(
     proposer: &AccountInfo,
     _payer: &AccountInfo,
     system_program: &AccountInfo,
-    _instruction: &ProposeTransactionInstruction,
+    instruction: &ProposeTransactionInstruction,
 ) -> ProgramResult {
-    assert_that(proposer.is_signer, MultisigError::ProposerNotSigner)?;
-    // TODO empty instruction list
     if system_program.key != &system_program::id() {
         return Err(ProgramError::IncorrectProgramId);
     }
+    assert_that(proposer.is_signer, MultisigError::ProposerNotSigner)?;
+    assert_that(!instruction.instructions.is_empty(), MultisigError::MissingInstructions)?;
     Ok(())
 }
 

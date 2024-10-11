@@ -15,6 +15,8 @@ pub enum MultisigError {
     InvalidOwner,
     #[error("The proposer must be a signer.")]
     ProposerNotSigner,
+    #[error("The number of instructions must be greater than zero.")]
+    MissingInstructions,
 }
 
 impl From<MultisigError> for ProgramError {
