@@ -1,5 +1,5 @@
 import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
-import {BanksTransactionMeta, BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
+import {BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
 import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "./instructions";
 
 export interface MultisigAccount {
@@ -8,7 +8,7 @@ export interface MultisigAccount {
   nonce: number;
   owners: Keypair[];
   threshold: number;
-  txMeta: BanksTransactionMeta;
+  txMeta: BanksTransactionResultWithMeta;
 }
 
 export class MultisigDsl {
@@ -42,7 +42,7 @@ export class MultisigDsl {
     tx.recentBlockhash = this.programTestContext.lastBlockhash;
     tx.sign(payer, multisig);
 
-    const txMeta = await this.programTestContext.banksClient.processTransaction(tx);
+    const txMeta = await this.programTestContext.banksClient.tryProcessTransaction(tx);
 
     if (initialBalance > 0) {
       await this.programTestContext.banksClient.processTransaction(
