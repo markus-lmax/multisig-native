@@ -1,6 +1,10 @@
 import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
 import {BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
-import {createCreateMultisigInstruction, createProposeTransactionInstruction} from "./instructions";
+import {
+  createApproveTransactionInstruction,
+  createCreateMultisigInstruction,
+  createProposeTransactionInstruction
+} from "./instructions";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -108,4 +112,19 @@ export class MultisigDsl {
                                                 multisig: PublicKey): Promise<[PublicKey, BanksTransactionResultWithMeta]> {
     return this.proposeTransaction(proposer, instructions, multisig, Keypair.generate(), false, SystemProgram.programId);
   }
+
+  async approveTransaction(approver: Keypair,
+                           multisig: PublicKey,
+                           transactionAddress: PublicKey): Promise<BanksTransactionResultWithMeta> {
+    let ix = createApproveTransactionInstruction(multisig,
+        transactionAddress,
+        approver.publicKey,
+        this.programId);
+    const tx = new Transaction().add(ix);
+    tx.recentBlockhash = this.programTestContext.lastBlockhash;
+    tx.sign(this.programTestContext.payer, approver);
+
+    return this.programTestContext.banksClient.tryProcessTransaction(tx);
+  }
+
 }

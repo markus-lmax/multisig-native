@@ -8,11 +8,13 @@ use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstru
 use crate::instructions::propose_transaction::{
     propose_transaction, ProposeTransactionInstruction,
 };
+use crate::instructions::approve_transaction::{approve_transaction};
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum MultisigInstruction {
     CreateMultisig(CreateMultisigInstruction),
     ProposeTransaction(ProposeTransactionInstruction),
+    ApproveTransaction(),
 }
 
 pub fn process_instruction(
@@ -28,7 +30,10 @@ pub fn process_instruction(
             MultisigInstruction::ProposeTransaction(propose_data) => {
                 propose_transaction(program_id, accounts, propose_data)
             }
-        }
+            MultisigInstruction::ApproveTransaction() => {
+                approve_transaction(accounts)
+            }
+        };
     }
     Err(ProgramError::InvalidInstructionData)
 }
