@@ -27,7 +27,7 @@ pub struct TransactionInstructionData {
 }
 impl TransactionInstructionData {
     pub fn len(&self) -> usize {
-        32 +                                      // program_id
+        32 +                                          // program_id
             4 + (32 + 1 + 1) * self.accounts.len() +  // accounts
             4 + self.data.len()                       // data
     }
@@ -52,7 +52,7 @@ pub fn propose_transaction(
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    validate(program_id, multisig_account, transaction_account, proposer, payer, system_program, &instruction)?;
+    validate(proposer, system_program, &instruction)?;
 
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
     let owner_index = multisig.owners.iter()
@@ -84,11 +84,7 @@ pub fn propose_transaction(
 }
 
 fn validate(
-    _program_id: &Pubkey,
-    _multisig: &AccountInfo,
-    _transaction_account: &AccountInfo,
     proposer: &AccountInfo,
-    _payer: &AccountInfo,
     system_program: &AccountInfo,
     instruction: &ProposeTransactionInstruction,
 ) -> ProgramResult {
