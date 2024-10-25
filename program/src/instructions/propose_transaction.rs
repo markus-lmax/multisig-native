@@ -92,9 +92,7 @@ fn validate(
     system_program: &AccountInfo,
     instruction: &ProposeTransactionInstruction,
 ) -> ProgramResult {
-    if system_program.key != &system_program::id() {
-        return Err(ProgramError::IncorrectProgramId);
-    }
+    assert_that(system_program.key == &system_program::id(), ProgramError::IncorrectProgramId)?;
     assert_that(proposer.is_signer, MultisigError::ProposerNotSigner)?;
     assert_that(!instruction.instructions.is_empty(), MultisigError::MissingInstructions)?;
     Ok(())

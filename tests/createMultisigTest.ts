@@ -55,21 +55,21 @@ describe("create multisig", async () => {
     // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs)
     //      -> is there a way to retain the anchor behaviour (custom error message appearing in the exception)
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
 
   test("do not create multisig with 0 threshold", async () => {
     let txMeta = (await dsl.createMultisig(0, 3)).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
 
   test("do not create multisig with 0 threshold and no owners", async () => {
     let txMeta = (await dsl.createMultisigWithOwners(0, [])).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
 
@@ -77,14 +77,14 @@ describe("create multisig", async () => {
     const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
     let txMeta = (await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB])).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x1");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: UniqueOwners (Owners must be unique.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: UniqueOwners (Owners must be unique.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x1"));
   });
 
   test("do not create multisig account with bad nonce", async () => {
     let txMeta = (await dsl.createMultisigWithBadNonce()).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: ConstraintSeeds (A seeds constraint was violated.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: ConstraintSeeds (A seeds constraint was violated.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
   });
 });

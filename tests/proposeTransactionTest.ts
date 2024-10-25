@@ -54,6 +54,7 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransactionWithIncorrectSystemProgram(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: incorrect program id for instruction");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith("failed: incorrect program id for instruction"));
   })
 
@@ -65,7 +66,7 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransactionWithProposerNotSigner(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x4");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: ProposerNotSigner (The proposer must be a signer.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: ProposerNotSigner (The proposer must be a signer.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x4"));
   })
 
@@ -75,7 +76,7 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransaction(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x5");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" custom program error: MissingInstructions (The number of instructions must be greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: MissingInstructions (The number of instructions must be greater than zero.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x5"));
   })
 });

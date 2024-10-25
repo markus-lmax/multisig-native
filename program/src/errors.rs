@@ -1,6 +1,7 @@
 use solana_program::entrypoint::ProgramResult;
 use solana_program::msg;
 use solana_program::program_error::ProgramError;
+use std::fmt::{Debug, Display};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -25,11 +26,11 @@ impl From<MultisigError> for ProgramError {
    }
 }
 
-pub fn assert_that(condition: bool, error: MultisigError) -> ProgramResult {
+pub fn assert_that(condition: bool, error: impl Into<ProgramError> + Debug + Display) -> ProgramResult {
     if condition {
         Ok(())
     } else {
-        msg!("custom program error: {:?} ({})", error, error);
+        msg!("assertion failed - program error: {:?} ({})", error, error);
         Err(error.into())
     }
 }
