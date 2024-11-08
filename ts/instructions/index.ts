@@ -4,6 +4,7 @@ export * from "./approveTransaction";
 
 export enum MultisigInstruction {
   CreateMultisig = 0,
-  ProposeTransaction = 1,
-  ApproveTransaction = 2,
+  SetOwners = 1,
+  ProposeTransaction = 2,
+  ApproveTransaction = 3,
 }

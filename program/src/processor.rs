@@ -9,12 +9,15 @@ use crate::instructions::propose_transaction::{
     propose_transaction, ProposeTransactionInstruction,
 };
 use crate::instructions::approve_transaction::{approve_transaction};
+use crate::instructions::set_owners::{set_owners, SetOwnersInstruction};
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum MultisigInstruction {
     CreateMultisig(CreateMultisigInstruction),
+    SetOwners(SetOwnersInstruction),
     ProposeTransaction(ProposeTransactionInstruction),
     ApproveTransaction(),
+
 }
 
 pub fn process_instruction(
@@ -26,6 +29,9 @@ pub fn process_instruction(
         return match instruction {
             MultisigInstruction::CreateMultisig(create_data) => {
                 create_multisig(program_id, accounts, create_data)
+            }
+            MultisigInstruction::SetOwners(set_owners_data) => {
+                set_owners(accounts, set_owners_data)
             }
             MultisigInstruction::ProposeTransaction(propose_data) => {
                 propose_transaction(program_id, accounts, propose_data)

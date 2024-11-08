@@ -2,6 +2,7 @@ use solana_program::entrypoint::ProgramResult;
 use solana_program::msg;
 use solana_program::program_error::ProgramError;
 use std::fmt::{Debug, Display};
+use solana_program::pubkey::Pubkey;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -18,6 +19,13 @@ pub enum MultisigError {
     ProposerNotSigner,
     #[error("The number of instructions must be greater than zero.")]
     MissingInstructions,
+    #[error("The owner set sequence attributes of the multisig account and transaction account must match.")]
+    InvalidOwnerSetSequenceNumber,
+    #[error("The number of owners must be greater than zero.")]
+    NotEnoughOwners,
+    #[error("The number of owners must not be increased.")]
+    TooManyOwners,
+
 }
 
 impl From<MultisigError> for ProgramError {
@@ -33,4 +41,14 @@ pub fn assert_that(condition: bool, error: impl Into<ProgramError> + Debug + Dis
         msg!("assertion failed - program error: {:?} ({})", error, error);
         Err(error.into())
     }
+}
+
+pub fn assert_unique_owners(owners: &[Pubkey]) -> ProgramResult {
+    for (i, owner) in owners.iter().enumerate() {
+        assert_that(
+            !owners.iter().skip(i + 1).any(|item| item == owner),
+            MultisigError::UniqueOwners,
+        )?
+    }
+    Ok(())
 }

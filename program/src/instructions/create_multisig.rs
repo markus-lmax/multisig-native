@@ -1,4 +1,4 @@
-use crate::errors::{assert_that, MultisigError};
+use crate::errors::{assert_that, assert_unique_owners, MultisigError};
 use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
@@ -78,15 +78,5 @@ fn validate(
         multisig_signer.key.as_ref() == pda_address?.as_ref(),
         MultisigError::ConstraintSeeds,
     )?;
-    Ok(())
-}
-
-fn assert_unique_owners(owners: &[Pubkey]) -> ProgramResult {
-    for (i, owner) in owners.iter().enumerate() {
-        assert_that(
-            !owners.iter().skip(i + 1).any(|item| item == owner),
-            MultisigError::UniqueOwners,
-        )?
-    }
     Ok(())
 }
