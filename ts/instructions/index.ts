@@ -7,4 +7,5 @@ export enum MultisigInstruction {
   SetOwners = 1,
   ProposeTransaction = 2,
   ApproveTransaction = 3,
+  ExecuteTransaction = 4,
 }

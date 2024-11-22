@@ -23,6 +23,18 @@ pub enum MultisigError {
     NotEnoughOwners,
     #[error("The number of owners must not be increased.")]
     TooManyOwners,
+    #[error("The executor must be a signer and an owner of this multisig.")]
+    InvalidExecutor,
+    #[error("The transaction account must be writable.")]
+    ImmutableTransactionAccount,
+    #[error("The multisig of transaction account must match the provided multisig account.")]
+    InvalidTransactionAccount,
+    #[error("The refundee account must not be the same as the transaction account.")]
+    InvalidRefundeeAccount,
+    #[error("The refundee account must be writable.")]
+    ImmutableRefundeeAccount,
+    #[error("The transaction must reach a minimum number of approvals.")]
+    NotEnoughSigners,
 }
 
 impl From<MultisigError> for ProgramError {

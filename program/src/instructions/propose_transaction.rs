@@ -7,7 +7,7 @@ use solana_program::rent::Rent;
 use solana_program::system_program;
 use solana_program::sysvar::Sysvar;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction};
-
+use solana_program::instruction::{AccountMeta, Instruction};
 use crate::errors::{assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
@@ -17,6 +17,14 @@ pub struct TransactionInstructionAccount {
     pub pubkey: Pubkey,
     pub is_signer: bool,
     pub is_writable: bool,
+}
+impl From<&TransactionInstructionAccount> for AccountMeta {
+    fn from(account: &TransactionInstructionAccount) -> AccountMeta {
+        match account.is_writable {
+            false => AccountMeta::new_readonly(account.pubkey, account.is_signer),
+            true => AccountMeta::new(account.pubkey, account.is_signer),
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
@@ -32,6 +40,15 @@ impl TransactionInstructionData {
             4 + self.data.len()                       // data
     }
 
+}
+impl From<&TransactionInstructionData> for Instruction {
+    fn from(ix: &TransactionInstructionData) -> Instruction {
+        Instruction {
+            program_id: ix.program_id,
+            accounts: ix.accounts.iter().map(Into::into).collect(),
+            data: ix.data.clone(),
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
