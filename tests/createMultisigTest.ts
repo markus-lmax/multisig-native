@@ -83,8 +83,8 @@ describe("create multisig", async () => {
 
   test("do not create multisig account with bad nonce", async () => {
     let txMeta = (await dsl.createMultisigWithBadNonce()).txMeta;
-    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: ConstraintSeeds (A seeds constraint was violated.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidSeeds (Provided seeds do not result in a valid address)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: Provided seeds do not result in a valid address"));
   });
 });

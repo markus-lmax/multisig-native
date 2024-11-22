@@ -11,8 +11,6 @@ pub enum MultisigError {
     InvalidThreshold,
     #[error("Owners must be unique.")]
     UniqueOwners,
-    #[error("A seeds constraint was violated.")] // TODO copy/pasted from Anchor, but we only use this for nonce check ATM - better / more specific error message?
-    ConstraintSeeds,
     #[error("The given owner is not part of this multisig.")]
     InvalidOwner,
     #[error("The proposer must be a signer.")]
@@ -25,7 +23,6 @@ pub enum MultisigError {
     NotEnoughOwners,
     #[error("The number of owners must not be increased.")]
     TooManyOwners,
-
 }
 
 impl From<MultisigError> for ProgramError {

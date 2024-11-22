@@ -3,6 +3,7 @@ use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
+use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
 use solana_program::sysvar::Sysvar;
@@ -68,15 +69,13 @@ fn validate(
     let pda_address = Pubkey::create_program_address(
         &[multisig.key.as_ref(), &[instruction.nonce][..]],
         &program_id,
-    );
-    if pda_address.is_err() {
-        // TODO ugly hack to re-use the custom log message inside `assert_that` -
-        //  is there nicer way to do this via `map_err` or something similar?
-        assert_that(false, MultisigError::ConstraintSeeds)?;
-    }
+    ).map_err(|err| {
+        msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig.key, instruction.nonce, err);
+        ProgramError::InvalidSeeds
+    })?;
     assert_that(
-        multisig_signer.key.as_ref() == pda_address?.as_ref(),
-        MultisigError::ConstraintSeeds,
+        multisig_signer.key.as_ref() == pda_address.as_ref(),
+        ProgramError::InvalidSeeds,
     )?;
     Ok(())
 }
