@@ -5,6 +5,8 @@ import {
   createCreateMultisigInstruction,
   createProposeTransactionInstruction
 } from "./instructions";
+import {assert} from "chai";
+import {Transaction as TransactionAccount} from "./state/transaction";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -27,6 +29,13 @@ export class MultisigDsl {
   async createMultisig(threshold: number, numberOfOwners: number, initialBalance: number = 0): Promise<MultisigAccount> {
     const owners: Keypair[] = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
     return await this.createMultisigWithOwners(threshold, owners, initialBalance);
+  }
+
+  async getTransactionAccount(address: PublicKey): Promise<TransactionAccount>
+  {
+    const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address);
+    assert.isNotNull(transactionAccountInfo);
+    return TransactionAccount.deserialize(transactionAccountInfo?.data);
   }
 
   async createMultisigWithOwners(threshold: number,

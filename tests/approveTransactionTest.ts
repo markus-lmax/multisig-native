@@ -9,12 +9,6 @@ describe("approve transaction", async () => {
   const programId = PublicKey.unique();
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
-  async function getTransactionAccount(address: PublicKey): Promise<Transaction>
-  {
-    const transactionAccountInfo = await context.banksClient.getAccount(address);
-    assert.isNotNull(transactionAccountInfo);
-    return Transaction.deserialize(transactionAccountInfo?.data);
-  }
 
   test("approve transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
@@ -33,7 +27,7 @@ describe("approve transaction", async () => {
     assert.strictEqual(logs[logs.length-3], "Program log: invoke approve_transaction");
     assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
 
-    let transactionAccount: Transaction = await getTransactionAccount(transactionAddress);
+    let transactionAccount: Transaction = await dsl.getTransactionAccount(transactionAddress);
     assert.deepStrictEqual(transactionAccount["signers"], [true, true, false], "Both ownerA and ownerB should have approved");
   });
 });
