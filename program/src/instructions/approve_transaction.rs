@@ -1,10 +1,9 @@
+use crate::errors::{assert_that, MultisigError};
+use crate::state::multisig::Multisig;
+use crate::state::transaction::Transaction;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
-
-use crate::errors::MultisigError;
-use crate::state::multisig::Multisig;
-use crate::state::transaction::Transaction;
 
 pub fn approve_transaction(
     accounts: &[AccountInfo],
@@ -18,11 +17,8 @@ pub fn approve_transaction(
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
     let mut transaction = Transaction::try_from_slice(&transaction_account.data.borrow())?;
 
-    // TODO add validations:
-    // - transaction_account.owner_set_seqno == multisig.owner_set_seqno
-    // - validate approver is signer
-    // - transaction is writable
-    // - transaction.multisig == multisig_account.key
+    validate(&multisig, &transaction)?;
+    // TODO next step: get execute_transaction in (enables most tests)
 
     let owner_index = multisig.owners.iter()
         .position(|a| a == approver.key)
@@ -30,5 +26,20 @@ pub fn approve_transaction(
     transaction.signers[owner_index] = true;
 
     transaction.serialize(&mut &mut transaction_account.data.borrow_mut()[..])?;
+    Ok(())
+}
+
+fn validate(
+    multisig: &Multisig,
+    transaction: &Transaction,
+) -> ProgramResult {
+    assert_that(
+        multisig.owner_set_seqno == transaction.owner_set_seqno,
+        MultisigError::InvalidOwnerSetSequenceNumber,
+    )?;
+    // TODO add validations:
+    // - validate approver is signer
+    // - transaction is writable
+    // - transaction.multisig == multisig_account.key
     Ok(())
 }
