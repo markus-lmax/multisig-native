@@ -136,4 +136,57 @@ export class MultisigDsl {
     return this.programTestContext.banksClient.tryProcessTransaction(tx);
   }
 
+  async assertBalance(address: PublicKey, expectedBalance: number) {
+    let actualBalance = await this.programTestContext.banksClient.getBalance(address, "confirmed");
+    assert.strictEqual(actualBalance, BigInt(expectedBalance));
+  }
+
+  async executeTransactionWithMultipleInstructions(
+      tx: PublicKey,
+      ixs: Array<TransactionInstruction>,
+      multisigSigner: PublicKey,
+      multisigAddress: PublicKey,
+      executor: Keypair,
+      refundee: PublicKey) {
+    const accounts = ixs.flatMap(ix =>
+        ix.keys
+            .map((meta) => meta.pubkey.equals(multisigSigner)? {...meta, isSigner: false} : meta)
+            .concat({
+              pubkey: ix.programId,
+              isWritable: false,
+              isSigner: false,
+            })
+    );
+    const dedupedAccounts = accounts.filter((value, index) => {
+      const _value = JSON.stringify(value);
+      return index === accounts.findIndex(obj => {
+        return JSON.stringify(obj) === _value;
+      });
+    });
+    return this.programTestContext.banksClient.tryProcessTransaction(tx);
+
+    await this.program.methods
+        .executeTransaction()
+        .accounts({
+          multisig: multisigAddress,
+          multisigSigner,
+          transaction: tx,
+          executor: executor.publicKey,
+          refundee: refundee
+        })
+        .remainingAccounts(dedupedAccounts)
+        .signers([executor])
+        .rpc();
+  }
+
+  async executeTransaction(
+      tx: PublicKey,
+      ix: TransactionInstruction,
+      multisigSigner: PublicKey,
+      multisigAddress: PublicKey,
+      executor: Keypair,
+      refundee: PublicKey) {
+    await this.executeTransactionWithMultipleInstructions(tx, [ix], multisigSigner, multisigAddress, executor, refundee);
+  }
+
 }
