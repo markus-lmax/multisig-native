@@ -1,9 +1,17 @@
-import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+  VoteProgram
+} from "@solana/web3.js";
 import {BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
 import {
   createApproveTransactionInstruction,
   createCreateMultisigInstruction,
-  createProposeTransactionInstruction
+  createProposeTransactionInstruction,
+  createExecuteTransactionInstruction
 } from "./instructions";
 import {assert} from "chai";
 import {Transaction as TransactionAccount} from "./state/transaction";
@@ -58,15 +66,16 @@ export class MultisigDsl {
     const txMeta = await this.programTestContext.banksClient.tryProcessTransaction(tx);
 
     if (initialBalance > 0) {
-      await this.programTestContext.banksClient.processTransaction(
-        new Transaction().add(
+      let fundingTx = new Transaction().add(
           SystemProgram.transfer({
             fromPubkey: payer.publicKey,
             lamports: initialBalance,
             toPubkey: multisigSigner,
           })
-        )
       );
+      fundingTx.recentBlockhash = this.programTestContext.lastBlockhash;
+      fundingTx.sign(payer);
+      await this.programTestContext.banksClient.processTransaction(fundingTx);
     }
 
     return {
@@ -142,7 +151,7 @@ export class MultisigDsl {
   }
 
   async executeTransactionWithMultipleInstructions(
-      tx: PublicKey,
+      txAccount: PublicKey,
       ixs: Array<TransactionInstruction>,
       multisigSigner: PublicKey,
       multisigAddress: PublicKey,
@@ -163,30 +172,25 @@ export class MultisigDsl {
         return JSON.stringify(obj) === _value;
       });
     });
-    return this.programTestContext.banksClient.tryProcessTransaction(tx);
 
-    await this.program.methods
-        .executeTransaction()
-        .accounts({
-          multisig: multisigAddress,
-          multisigSigner,
-          transaction: tx,
-          executor: executor.publicKey,
-          refundee: refundee
-        })
-        .remainingAccounts(dedupedAccounts)
-        .signers([executor])
-        .rpc();
+    const ix = createExecuteTransactionInstruction(
+        multisigAddress, multisigSigner, txAccount, refundee, executor.publicKey, dedupedAccounts, this.programId
+    );
+    const tx = new Transaction().add(ix);
+    tx.recentBlockhash = this.programTestContext.lastBlockhash;
+    tx.sign(this.programTestContext.payer, executor);
+
+    return await this.programTestContext.banksClient.tryProcessTransaction(tx);
   }
 
   async executeTransaction(
-      tx: PublicKey,
+      txAccount: PublicKey,
       ix: TransactionInstruction,
       multisigSigner: PublicKey,
       multisigAddress: PublicKey,
       executor: Keypair,
       refundee: PublicKey) {
-    await this.executeTransactionWithMultipleInstructions(tx, [ix], multisigSigner, multisigAddress, executor, refundee);
+    return await this.executeTransactionWithMultipleInstructions(txAccount, [ix], multisigSigner, multisigAddress, executor, refundee);
   }
 
 }

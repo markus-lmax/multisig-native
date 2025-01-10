@@ -4,11 +4,12 @@ use solana_program::entrypoint::ProgramResult;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 
+use crate::instructions::approve_transaction::approve_transaction;
 use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstruction};
+use crate::instructions::execute_transaction::execute_transaction;
 use crate::instructions::propose_transaction::{
     propose_transaction, ProposeTransactionInstruction,
 };
-use crate::instructions::approve_transaction::{approve_transaction};
 use crate::instructions::set_owners::{set_owners, SetOwnersInstruction};
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -17,7 +18,7 @@ pub enum MultisigInstruction {
     SetOwners(SetOwnersInstruction),
     ProposeTransaction(ProposeTransactionInstruction),
     ApproveTransaction(),
-
+    ExecuteTransaction(),
 }
 
 pub fn process_instruction(
@@ -36,9 +37,8 @@ pub fn process_instruction(
             MultisigInstruction::ProposeTransaction(propose_data) => {
                 propose_transaction(program_id, accounts, propose_data)
             }
-            MultisigInstruction::ApproveTransaction() => {
-                approve_transaction(accounts)
-            }
+            MultisigInstruction::ApproveTransaction() => approve_transaction(accounts),
+            MultisigInstruction::ExecuteTransaction() => execute_transaction(program_id, accounts),
         };
     }
     Err(ProgramError::InvalidInstructionData)
