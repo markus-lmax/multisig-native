@@ -3,6 +3,7 @@ import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
 import {MultisigDsl} from "../ts";
 import {assert} from "chai";
+import {createTransferCheckedInstruction} from "@solana/spl-token";
 
 describe("execute transaction", async () => {
   const programId = PublicKey.unique();
@@ -33,4 +34,31 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(recipient, 900_000);
   });
 
+  test("let proposer execute a SPL token transaction if multisig approval threshold reached using an ata", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    let mint = await dsl.createTokenMint(3);
+    let multisigOwnedAta = await dsl.createAta(mint, multisig.signer, 20);
+    let destinationAta = await dsl.createAta(mint, Keypair.generate().publicKey);
+    let tokenTransferInstruction = createTransferCheckedInstruction(
+        multisigOwnedAta,  // from (should be a token account)
+        mint.account,      // mint
+        destinationAta,    // to (should be a token account)
+        multisig.signer,   // from's owner
+        15,                // amount
+        3                  // decimals
+    );
+
+    await dsl.assertAtaBalance(multisigOwnedAta, 20);
+    await dsl.assertAtaBalance(destinationAta, 0);
+
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [tokenTransferInstruction], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+
+    await dsl.executeTransaction(transactionAddress, tokenTransferInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
+
+    await dsl.assertAtaBalance(multisigOwnedAta, 5);
+    await dsl.assertAtaBalance(destinationAta, 15);
+  });
 });
