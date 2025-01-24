@@ -139,4 +139,24 @@ describe("execute transaction", async () => {
     assert.ok(txResult.meta.logMessages.includes("Transfer: insufficient lamports 400000, need 500000"));
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
+
+  test("let owner who has approved execute transaction if multisig approval threshold reached", async () => {
+    const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    let transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+    await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+
+    await dsl.assertBalance(multisig.signer, 0);
+  });
+
 });
