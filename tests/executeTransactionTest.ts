@@ -159,4 +159,96 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 0);
   });
 
+  test("let owner who has not approved execute transaction if multisig approval threshold reached", async () => {
+    const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+    const [ownerA, ownerB, ownerC] = multisig.owners;
+
+    let transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+    await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerC, ownerA.publicKey);
+
+    await dsl.assertBalance(multisig.signer, 0);
+  });
+
+  // TODO "close transaction account and refund rent exemption SOL on execute transaction"
+
+  // TODO test("refund rent exemption SOL to any nominated account", async () => {
+  //   const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+  //   const [ownerA, ownerB, _ownerC] = multisig.owners;
+  //   const otherAccount = Keypair.generate();
+  //
+  //   let transactionInstruction = SystemProgram.transfer({
+  //     fromPubkey: multisig.signer,
+  //     lamports: 1_000_000,
+  //     toPubkey: context.payer.publicKey,
+  //   });
+  //
+  //   const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+  //
+  //   await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+  //   await dsl.assertBalance(otherAccount.publicKey, 0);
+  //
+  //   await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerB, otherAccount.publicKey);
+  //   await dsl.assertBalance(otherAccount.publicKey, 2_108_880);  // this is the rent exemption amount
+  // });
+
+  // TODO "should not clear up transaction account if execute fails"
+
+  // TODO this fails because we don't yet close the TX account after execution
+  // test("should not execute transaction twice", async () => {
+  //   const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+  //   const [ownerA, ownerB, _ownerC] = multisig.owners;
+  //
+  //   let transactionInstruction = SystemProgram.transfer({
+  //     fromPubkey: multisig.signer,
+  //     lamports: 10_000,
+  //     toPubkey: context.payer.publicKey,
+  //   });
+  //
+  //   await dsl.assertBalance(multisig.signer, 1_000_000);
+  //
+  //   const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+  //   await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+  //
+  //   await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+  //
+  //   await dsl.assertBalance(multisig.signer, 990_000);
+  //
+  //   const txResult = await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
+  //
+  //   assert.match(txResult.result, new RegExp(
+  //       ".*Error Code: AccountNotInitialized. Error Number: 3012. Error Message: The program expected this account to be already initialized"));
+  // });
+
+  test("should not let a non-owner execute transaction", async () => {
+    const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+    const ownerD = Keypair.generate();
+
+    let transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+
+    const txResult = await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerD, ownerA.publicKey);
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: InvalidExecutor (The executor must be a signer and an owner of this multisig.)"))
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x8");
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+  });
 });
