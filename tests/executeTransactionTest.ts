@@ -103,4 +103,40 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 950_000);
     await dsl.assertAtaBalance(multisigOwnedAta, 5);
   });
+
+  test("should not execute any instructions if one of the instructions fails", async () => {
+    const multisig = await dsl.createMultisig(2, 3, 1_000_000);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    let instruction1 = SystemProgram.transfer({ // should work
+      fromPubkey: multisig.signer,
+      lamports: 600_000,
+      toPubkey: context.payer.publicKey,
+    });
+    let instruction2 = SystemProgram.transfer({ // should fail, not enough funds
+      fromPubkey: multisig.signer,
+      lamports: 500_000,
+      toPubkey: context.payer.publicKey,
+    });
+    let instruction3 = SystemProgram.transfer({ // would work if instruction2 wasn't present, but won't be executed
+      fromPubkey: multisig.signer,
+      lamports: 100_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [instruction1, instruction2, instruction3], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+    const txResult = await dsl.executeTransactionWithMultipleInstructions(transactionAddress,
+        [instruction1, instruction2, instruction3],
+        multisig.signer,
+        multisig.address,
+        ownerA,
+        ownerA.publicKey);
+
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x1")
+    assert.ok(txResult.meta.logMessages.includes("Transfer: insufficient lamports 400000, need 500000"));
+    await dsl.assertBalance(multisig.signer, 1_000_000);
+  });
 });
