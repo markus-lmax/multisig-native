@@ -35,6 +35,9 @@ pub enum MultisigError {
     ImmutableRefundeeAccount,
     #[error("The transaction must reach a minimum number of approvals.")]
     NotEnoughSigners,
+    #[error("Failed to close the transaction account.")]
+    AccountCloseFailure,
+
 }
 
 impl From<MultisigError> for ProgramError {

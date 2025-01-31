@@ -6,49 +6,15 @@ use solana_program::account_info::next_account_info;
 use solana_program::instruction::Instruction;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
+use solana_program::system_program;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
 pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     msg!("invoke execute_transaction");
-    let validated_accounts = validate(&program_id, &accounts)?;
 
-    // TODO how to refund to refundee on account close?
+    // TODO extract 3 methods from the below sections
 
-    let signer_seeds = &[validated_accounts.multisig_key.as_ref(), &[validated_accounts.multisig.nonce]];
-    validated_accounts.transaction
-        .instructions
-        .iter()
-        .map(|ix| {
-            let mut ix: Instruction = ix.into();
-            ix.accounts = ix
-                .accounts
-                .iter()
-                .map(|acc| {
-                    let mut acc = acc.clone();
-                    if acc.pubkey == validated_accounts.multisig_signer_key {
-                        acc.is_signer = true;
-                    }
-                    acc
-                })
-                .collect();
-            solana_program::program::invoke_signed(&ix, accounts, &[&signer_seeds[..]])
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(())
-}
-
-struct ValidatedAccounts {
-    multisig_key: Pubkey,
-    multisig_signer_key: Pubkey,
-    multisig: Multisig,
-    transaction: Transaction,
-}
-
-fn validate(
-    program_id: &&Pubkey,
-    accounts: &[AccountInfo],
-) -> Result<ValidatedAccounts, ProgramError> {
+    // validate accounts
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
     let multisig_signer = next_account_info(accounts_iter)?;
@@ -83,5 +49,36 @@ fn validate(
 
     let multisig_key = *multisig_account.key;
     let multisig_signer_key = *multisig_signer.key;
-    Ok(ValidatedAccounts { multisig_key, multisig_signer_key, multisig, transaction })
+
+    // execute transaction
+    let signer_seeds = &[multisig_key.as_ref(), &[multisig.nonce]];
+    transaction
+        .instructions
+        .iter()
+        .map(|ix| {
+            let mut ix: Instruction = ix.into();
+            ix.accounts = ix
+                .accounts
+                .iter()
+                .map(|acc| {
+                    let mut acc = acc.clone();
+                    if acc.pubkey == multisig_signer_key {
+                        acc.is_signer = true;
+                    }
+                    acc
+                })
+                .collect();
+            solana_program::program::invoke_signed(&ix, accounts, &[&signer_seeds[..]])
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // close account
+    **refundee.lamports.borrow_mut() = refundee.lamports()
+        .checked_add(transaction_account.lamports())
+        .ok_or(MultisigError::AccountCloseFailure)?;
+    **transaction_account.lamports.borrow_mut() = 0;
+    transaction_account.assign(&system_program::ID);
+    transaction_account.realloc(0, false)?;
+
+    Ok(())
 }
