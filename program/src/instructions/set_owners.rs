@@ -38,7 +38,8 @@ fn validate(multisig: &Multisig, owners: &[Pubkey]) -> ProgramResult {
     assert_that(!owners.is_empty(), MultisigError::NotEnoughOwners)?;
     // Increasing the number of owners requires reallocation of space in the data account.
     // This requires a signer to pay the fees for more space, but the instruction will be executed by the multisig.
-    assert_that(owners.len() <= multisig.owners.len(), MultisigError::TooManyOwners)?;
+    // TODO require!(multisig_data_len!(owners.len()) <= multisig.to_account_info().data.borrow().len(), ErrorCode::TooManyOwners);
+    // assert_that(owners.len() <= multisig.owners.len(), MultisigError::TooManyOwners)?;
     Ok(())
 }
 

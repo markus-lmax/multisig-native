@@ -1,4 +1,5 @@
 export * from "./createMultisig";
+export * from "./setOwners";
 export * from "./proposeTransaction";
 export * from "./approveTransaction";
 export * from "./executeTransaction";

@@ -4,7 +4,8 @@ import {
   createApproveTransactionInstruction,
   createCreateMultisigInstruction,
   createExecuteTransactionInstruction,
-  createProposeTransactionInstruction
+  createProposeTransactionInstruction,
+  createSetOwnersInstruction
 } from "./instructions";
 import {assert} from "chai";
 import {Transaction as TransactionAccount} from "./state/transaction";
@@ -15,6 +16,7 @@ import {
   MINT_SIZE,
   TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
+import {Multisig} from "./state";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -38,18 +40,6 @@ export class MultisigDsl {
   constructor(programId: PublicKey, programTestContext: ProgramTestContext) {
     this.programId = programId;
     this.programTestContext = programTestContext;
-  }
-
-  async createMultisig(threshold: number, numberOfOwners: number, initialBalance: number = 0): Promise<MultisigAccount> {
-    const owners: Keypair[] = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
-    return await this.createMultisigWithOwners(threshold, owners, initialBalance);
-  }
-
-  async getTransactionAccount(address: PublicKey): Promise<TransactionAccount>
-  {
-    const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address);
-    assert.isNotNull(transactionAccountInfo);
-    return TransactionAccount.deserialize(transactionAccountInfo?.data);
   }
 
   async createMultisigWithOwners(threshold: number,
@@ -92,6 +82,11 @@ export class MultisigDsl {
       threshold: threshold,
       txMeta: txMeta
     };
+  }
+
+  async createMultisig(threshold: number, numberOfOwners: number, initialBalance: number = 0): Promise<MultisigAccount> {
+    const owners: Keypair[] = Array.from({length: numberOfOwners}, (_, _n) => Keypair.generate());
+    return await this.createMultisigWithOwners(threshold, owners, initialBalance);
   }
 
   async createMultisigWithBadNonce(): Promise<MultisigAccount> {
@@ -149,6 +144,10 @@ export class MultisigDsl {
     tx.sign(this.programTestContext.payer, approver);
 
     return this.programTestContext.banksClient.tryProcessTransaction(tx);
+  }
+
+  createSetOwnersInstruction(multisig: PublicKey, newOwners: PublicKey[]): TransactionInstruction {
+    return createSetOwnersInstruction(multisig, newOwners, this.programId);
   }
 
   async assertBalance(address: PublicKey, expectedBalance: number) {
@@ -278,4 +277,20 @@ export class MultisigDsl {
     tx.sign(payer, ...additionalSigners);
     return await this.programTestContext.banksClient.tryProcessTransaction(tx);
   }
+
+
+  async getMultisig(multisigAddress: PublicKey): Promise<Multisig>
+  {
+    const multisigAccountInfo = await this.programTestContext.banksClient.getAccount(multisigAddress);
+    assert.isNotNull(multisigAccountInfo);
+    return Multisig.deserialize(multisigAccountInfo?.data);
+  }
+
+  async getTransactionAccount(address: PublicKey): Promise<TransactionAccount>
+  {
+    const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address);
+    assert.isNotNull(transactionAccountInfo);
+    return TransactionAccount.deserialize(transactionAccountInfo?.data);
+  }
+
 }

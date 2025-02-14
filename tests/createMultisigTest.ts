@@ -8,12 +8,7 @@ describe("create multisig", async () => {
   const programId = PublicKey.unique();
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
-  async function getMultisig(multisigAddress: PublicKey): Promise<Multisig>
-  {
-    const multisigAccountInfo = await context.banksClient.getAccount(multisigAddress);
-    assert.isNotNull(multisigAccountInfo);
-    return Multisig.deserialize(multisigAccountInfo?.data);
-  }
+
 
   test("create multisig account", async () => {
     const multisig = await dsl.createMultisig(2, 3);
@@ -24,7 +19,7 @@ describe("create multisig", async () => {
     assert(logs[1].startsWith(`Program log: invoke create_multisig - CreateMultisigInstruction { owners: [`));
     assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
 
-    const actualMultisig = await getMultisig(multisig.address);
+    const actualMultisig = await dsl.getMultisig(multisig.address);
     assert.strictEqual(actualMultisig["nonce"], multisig.nonce);
     assert.strictEqual(actualMultisig["threshold"], multisig.threshold);
     assert.deepEqual(actualMultisig["owners"], multisig.owners.map(owner => Array.from(owner.publicKey.toBytes())));
@@ -36,8 +31,8 @@ describe("create multisig", async () => {
     const multisig1 = await dsl.createMultisigWithOwners(2, [ownerA, ownerB, ownerC]);
     const multisig2 = await dsl.createMultisigWithOwners(3, [ownerC, ownerD, ownerE]);
 
-    const actualMultisig1 = await getMultisig(multisig1.address);
-    const actualMultisig2 = await getMultisig(multisig2.address);
+    const actualMultisig1 = await dsl.getMultisig(multisig1.address);
+    const actualMultisig2 = await dsl.getMultisig(multisig2.address);
 
     assert.strictEqual(actualMultisig1["nonce"], multisig1.nonce);
     assert.strictEqual(actualMultisig1["threshold"], multisig1.threshold);
