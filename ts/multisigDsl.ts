@@ -278,7 +278,6 @@ export class MultisigDsl {
     return await this.programTestContext.banksClient.tryProcessTransaction(tx);
   }
 
-
   async getMultisig(multisigAddress: PublicKey): Promise<Multisig>
   {
     const multisigAccountInfo = await this.programTestContext.banksClient.getAccount(multisigAddress);
@@ -293,4 +292,55 @@ export class MultisigDsl {
     return TransactionAccount.deserialize(transactionAccountInfo?.data);
   }
 
+  async proposeSignAndExecuteTransaction(
+      proposer: Keypair,
+      signers: Array<Keypair>,
+      instructions: Array<TransactionInstruction>,
+      multisigSigner: PublicKey,
+      multisigAddress: PublicKey,
+      executor: Keypair,
+      refundee: PublicKey
+  ) {
+    const transactionAccount = Keypair.generate();
+    const proposeInstruction = createProposeTransactionInstruction(multisigAddress,
+        transactionAccount.publicKey,
+        proposer.publicKey,
+        this.programTestContext.payer.publicKey,
+        this.programId,
+        instructions,
+        true,
+        SystemProgram.programId);
+
+    const approveInstructions = await Promise.all(signers.map(async signer =>
+        createApproveTransactionInstruction(multisigAddress, transactionAccount.publicKey, signer.publicKey, this.programId)
+    ));
+
+    const accounts = instructions.flatMap(ix =>
+        ix.keys.map((meta) => meta.pubkey.equals(multisigSigner) ? {...meta, isSigner: false} : meta)
+            .concat({
+              pubkey: ix.programId,
+              isWritable: false,
+              isSigner: false,
+            })
+    );
+    const dedupedAccounts = accounts.filter((value, index) => {
+      const _value = JSON.stringify(value);
+      return index === accounts.findIndex(obj => {
+        return JSON.stringify(obj) === _value;
+      });
+    });
+    const executeInstruction = createExecuteTransactionInstruction(multisigAddress, multisigSigner,
+        transactionAccount.publicKey, refundee, executor.publicKey, dedupedAccounts, this.programId);
+
+    const tx = new Transaction()
+        .add(proposeInstruction)
+        .add(...approveInstructions)
+        .add(executeInstruction);
+    tx.recentBlockhash = this.programTestContext.lastBlockhash;
+    tx.sign(transactionAccount, proposer, ...signers);
+    tx.sign(this.programTestContext.payer, transactionAccount, proposer, ...signers);
+    console.log("Transaction size " + tx.serialize({verifySignatures: false}).byteLength);
+
+    return await this.programTestContext.banksClient.tryProcessTransaction(tx);
+  }
 }
