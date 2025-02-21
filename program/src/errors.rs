@@ -46,12 +46,18 @@ impl From<MultisigError> for ProgramError {
    }
 }
 
+pub fn assert_present<T>(option: Option<T>, error: impl Into<ProgramError> + Debug + Display) -> Result<T, ProgramError> {
+    match option {
+        Some(v) => Ok(v),
+        None => Err(log(error)),
+    }
+}
+
 pub fn assert_that(condition: bool, error: impl Into<ProgramError> + Debug + Display) -> ProgramResult {
     if condition {
         Ok(())
     } else {
-        msg!("assertion failed - program error: {:?} ({})", error, error);
-        Err(error.into())
+        Err(log(error))
     }
 }
 
@@ -63,4 +69,9 @@ pub fn assert_unique_owners(owners: &[Pubkey]) -> ProgramResult {
         )?
     }
     Ok(())
+}
+
+fn log(error: impl Into<ProgramError> + Debug + Display) -> ProgramError {
+    msg!("assertion failed - program error: {:?} ({})", error, error);
+    error.into()
 }

@@ -8,7 +8,7 @@ use solana_program::system_program;
 use solana_program::sysvar::Sysvar;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction};
 use solana_program::instruction::{AccountMeta, Instruction};
-use crate::errors::{assert_that, MultisigError};
+use crate::errors::{assert_present, assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 
@@ -72,9 +72,10 @@ pub fn propose_transaction(
     validate(proposer, system_program, &instruction)?;
 
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
-    let owner_index = multisig.owners.iter()
-        .position(|a| a == proposer.key)
-        .ok_or(MultisigError::InvalidOwner)?;
+    let owner_index = assert_present(
+        multisig.owners.iter().position(|a| a == proposer.key),
+        MultisigError::InvalidOwner
+    )?;
     let mut signers = Vec::new();
     signers.resize(multisig.owners.len(), false);
     signers[owner_index] = true;

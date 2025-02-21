@@ -1,4 +1,4 @@
-use crate::errors::{assert_that, MultisigError};
+use crate::errors::{assert_present, assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -18,11 +18,11 @@ pub fn approve_transaction(
     let mut transaction = Transaction::try_from_slice(&transaction_account.data.borrow())?;
 
     validate(&multisig, &transaction)?;
-    // TODO next step: get execute_transaction in (enables most tests)
 
-    let owner_index = multisig.owners.iter()
-        .position(|a| a == approver.key)
-        .ok_or(MultisigError::InvalidOwner)?;
+    let owner_index = assert_present(
+        multisig.owners.iter().position(|a| a == approver.key),
+        MultisigError::InvalidOwner
+    )?;
     transaction.signers[owner_index] = true;
 
     transaction.serialize(&mut &mut transaction_account.data.borrow_mut()[..])?;
