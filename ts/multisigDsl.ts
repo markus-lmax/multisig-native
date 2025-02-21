@@ -52,26 +52,18 @@ export class MultisigDsl {
       this.programId
     );
     const payer = this.programTestContext.payer;
-    const ix = createCreateMultisigInstruction(
+    const createMultisig = createCreateMultisigInstruction(
       this.programId, threshold, owners, useInvalidNonce ? nonce - 1 : nonce, multisig.publicKey, multisigSigner, payer.publicKey
     );
-    const tx = new Transaction().add(ix);
-    tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(payer, multisig);
-
-    const txMeta = await this.programTestContext.banksClient.tryProcessTransaction(tx);
+    const txMeta = await this.createAndProcessTx([createMultisig], payer, [multisig]);
 
     if (initialBalance > 0) {
-      let fundingTx = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: payer.publicKey,
-            lamports: initialBalance,
-            toPubkey: multisigSigner,
-          })
-      );
-      fundingTx.recentBlockhash = this.programTestContext.lastBlockhash;
-      fundingTx.sign(payer);
-      await this.programTestContext.banksClient.processTransaction(fundingTx);
+      const systemTransfer = SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        lamports: initialBalance,
+        toPubkey: multisigSigner,
+      })
+      await this.createAndProcessTx([systemTransfer], payer);
     }
 
     return {
@@ -99,8 +91,8 @@ export class MultisigDsl {
                            transactionAddress?: Keypair,
                            proposerIsSigner = true,
                            systemProgramId: PublicKey = SystemProgram.programId): Promise<[PublicKey, BanksTransactionResultWithMeta]> {
-    let transactionAccount = transactionAddress ? transactionAddress : Keypair.generate();
-    let ix = createProposeTransactionInstruction(multisig,
+    const transactionAccount = transactionAddress ? transactionAddress : Keypair.generate();
+    const proposeTx = createProposeTransactionInstruction(multisig,
         transactionAccount.publicKey,
         proposer.publicKey,
         this.programTestContext.payer.publicKey,
@@ -108,15 +100,8 @@ export class MultisigDsl {
         instructions,
         proposerIsSigner,
         systemProgramId);
-    const tx = new Transaction().add(ix);
-    tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    if (proposerIsSigner) {
-      tx.sign(this.programTestContext.payer, proposer, transactionAccount);
-    } else {
-      tx.sign(this.programTestContext.payer, transactionAccount);
-    }
-    let txMeta = await this.programTestContext.banksClient.tryProcessTransaction(tx);
-
+    const additionalSigners = proposerIsSigner ? [proposer, transactionAccount] : [transactionAccount];
+    let txMeta = await this.createAndProcessTx([proposeTx], this.programTestContext.payer, additionalSigners);
     return [transactionAccount.publicKey, txMeta];
   }
 
@@ -135,15 +120,8 @@ export class MultisigDsl {
   async approveTransaction(approver: Keypair,
                            multisig: PublicKey,
                            transactionAddress: PublicKey): Promise<BanksTransactionResultWithMeta> {
-    let ix = createApproveTransactionInstruction(multisig,
-        transactionAddress,
-        approver.publicKey,
-        this.programId);
-    const tx = new Transaction().add(ix);
-    tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(this.programTestContext.payer, approver);
-
-    return this.programTestContext.banksClient.tryProcessTransaction(tx);
+    let approve = createApproveTransactionInstruction(multisig, transactionAddress, approver.publicKey, this.programId);
+    return this.createAndProcessTx([approve], this.programTestContext.payer, [approver]);
   }
 
   createSetOwnersInstruction(multisig: PublicKey, newOwners: PublicKey[]): TransactionInstruction {
@@ -183,15 +161,9 @@ export class MultisigDsl {
         return JSON.stringify(obj) === _value;
       });
     });
-
-    const ix = createExecuteTransactionInstruction(
-        multisigAddress, multisigSigner, txAccount, refundee, executor.publicKey, dedupedAccounts, this.programId
-    );
-    const tx = new Transaction().add(ix);
-    tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(this.programTestContext.payer, executor);
-
-    return await this.programTestContext.banksClient.tryProcessTransaction(tx);
+    const execute = createExecuteTransactionInstruction(
+        multisigAddress, multisigSigner, txAccount, refundee, executor.publicKey, dedupedAccounts, this.programId);
+    return await this.createAndProcessTx([execute], this.programTestContext.payer, [executor]);
   }
 
   async executeTransaction(
@@ -207,32 +179,25 @@ export class MultisigDsl {
   async createTokenMint(decimals: number = 3, initialSolBalance: number = 7_000_000): Promise<TokenMint> {
     const mintOwner = Keypair.generate();
 
-    const fundingTx = new Transaction().add(  // mintOwner is also the fee payer, need to give it funds
-        SystemProgram.transfer({
-          fromPubkey: this.programTestContext.payer.publicKey,
-          lamports: initialSolBalance,
-          toPubkey: mintOwner.publicKey,
-        })
-    );
-    fundingTx.recentBlockhash = this.programTestContext.lastBlockhash;
-    fundingTx.sign(this.programTestContext.payer);
-    await this.programTestContext.banksClient.processTransaction(fundingTx);
+    const fundMintOwner = SystemProgram.transfer({
+      fromPubkey: this.programTestContext.payer.publicKey,
+      lamports: initialSolBalance,
+      toPubkey: mintOwner.publicKey,
+    });
+    await this.createAndProcessTx([fundMintOwner], this.programTestContext.payer);
 
     const mintAccountKeypair = Keypair.generate();
     const rent = await this.programTestContext.banksClient.getRent();
-    const mintTx = new Transaction().add(
-        SystemProgram.createAccount({
-          fromPubkey: mintOwner.publicKey,
-          newAccountPubkey: mintAccountKeypair.publicKey,
-          space: MINT_SIZE,
-          lamports: Number(rent.minimumBalance(BigInt(MINT_SIZE))),
-          programId: TOKEN_PROGRAM_ID,
-        }),
-        createInitializeMint2Instruction(mintAccountKeypair.publicKey, decimals, mintOwner.publicKey, mintOwner.publicKey, TOKEN_PROGRAM_ID)
-    );
-    mintTx.recentBlockhash = this.programTestContext.lastBlockhash;
-    mintTx.sign(mintOwner, mintAccountKeypair);
-    await this.programTestContext.banksClient.processTransaction(mintTx);
+    const createMintAccount = SystemProgram.createAccount({
+      fromPubkey: mintOwner.publicKey,
+      newAccountPubkey: mintAccountKeypair.publicKey,
+      space: MINT_SIZE,
+      lamports: Number(rent.minimumBalance(BigInt(MINT_SIZE))),
+      programId: TOKEN_PROGRAM_ID,
+    });
+    const initMintAccount = createInitializeMint2Instruction(
+        mintAccountKeypair.publicKey, decimals, mintOwner.publicKey, mintOwner.publicKey, TOKEN_PROGRAM_ID);
+    await this.createAndProcessTx([createMintAccount, initMintAccount], mintOwner, [mintAccountKeypair]);
 
     return { owner: mintOwner, account: mintAccountKeypair.publicKey, decimals: decimals };
   }
@@ -267,12 +232,11 @@ export class MultisigDsl {
     return ata;
   }
 
-  // TODO use this for TX creation everywhere
-  async createAndProcessTransaction(payer: Keypair, instruction: TransactionInstruction, additionalSigners: Keypair[] = []): Promise<BanksTransactionResultWithMeta> {
+  async createAndProcessTx(instructions: TransactionInstruction[], payer: Keypair, additionalSigners: Keypair[] = []): Promise<BanksTransactionResultWithMeta> {
     const tx = new Transaction();
-    const [latestBlockhash] = await this.programTestContext.banksClient.getLatestBlockhash();
+    const [latestBlockhash, _blockHeight] = await this.programTestContext.banksClient.getLatestBlockhash();
     tx.recentBlockhash = latestBlockhash;
-    tx.add(instruction);
+    instructions.forEach(ix => tx.add(ix));
     tx.feePayer = payer.publicKey;
     tx.sign(payer, ...additionalSigners);
     return await this.programTestContext.banksClient.tryProcessTransaction(tx);
@@ -301,18 +265,12 @@ export class MultisigDsl {
       executor: Keypair,
       refundee: PublicKey
   ) {
-    const transactionAccount = Keypair.generate();
-    const proposeInstruction = createProposeTransactionInstruction(multisigAddress,
-        transactionAccount.publicKey,
-        proposer.publicKey,
-        this.programTestContext.payer.publicKey,
-        this.programId,
-        instructions,
-        true,
-        SystemProgram.programId);
+    const txAccount = Keypair.generate();
+    const propose = createProposeTransactionInstruction(multisigAddress, txAccount.publicKey, proposer.publicKey,
+        this.programTestContext.payer.publicKey, this.programId, instructions, true, SystemProgram.programId);
 
-    const approveInstructions = await Promise.all(signers.map(async signer =>
-        createApproveTransactionInstruction(multisigAddress, transactionAccount.publicKey, signer.publicKey, this.programId)
+    const approvals = await Promise.all(signers.map(async signer =>
+        createApproveTransactionInstruction(multisigAddress, txAccount.publicKey, signer.publicKey, this.programId)
     ));
 
     const accounts = instructions.flatMap(ix =>
@@ -329,18 +287,9 @@ export class MultisigDsl {
         return JSON.stringify(obj) === _value;
       });
     });
-    const executeInstruction = createExecuteTransactionInstruction(multisigAddress, multisigSigner,
-        transactionAccount.publicKey, refundee, executor.publicKey, dedupedAccounts, this.programId);
+    const execute = createExecuteTransactionInstruction(multisigAddress, multisigSigner,
+        txAccount.publicKey, refundee, executor.publicKey, dedupedAccounts, this.programId);
 
-    const tx = new Transaction()
-        .add(proposeInstruction)
-        .add(...approveInstructions)
-        .add(executeInstruction);
-    tx.recentBlockhash = this.programTestContext.lastBlockhash;
-    tx.sign(transactionAccount, proposer, ...signers);
-    tx.sign(this.programTestContext.payer, transactionAccount, proposer, ...signers);
-    console.log("Transaction size " + tx.serialize({verifySignatures: false}).byteLength);
-
-    return await this.programTestContext.banksClient.tryProcessTransaction(tx);
+    return await this.createAndProcessTx([propose, ...approvals, execute], this.programTestContext.payer, [txAccount, proposer, ...signers]);
   }
 }
