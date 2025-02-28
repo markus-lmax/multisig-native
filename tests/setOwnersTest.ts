@@ -77,43 +77,27 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
   });
 
+  test("should not allow old owners to approve new transaction after ownership change", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+    const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
+
+
+    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress);
+    await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+
+    const setOwners2 = dsl.createSetOwnersInstruction(multisig.address, multisig.owners.map(owner => owner.publicKey));
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(newOwnerA, [setOwners2], multisig.address);
+
+    const txMeta = await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
+  });
+
   /*
-test("should not allow old owners to approve new transaction after ownership change", async () => {
-  const multisig = await dsl.createMultisig(2, 3);
-  const [ownerA, ownerB, _ownerC] = multisig.owners;
-  const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
-
-  // Create instruction to change multisig owners
-  let transactionInstruction = await program.methods
-      .setOwners([newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey])
-      .accounts({
-        multisig: multisig.address,
-        multisigSigner: multisig.signer,
-      })
-      .instruction();
-
-  const transactionAddress: PublicKey = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
-  await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
-  await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
-
-  let transactionInstruction2 = await program.methods
-      .setOwners(multisig.owners.map(owner => owner.publicKey))
-      .accounts({
-        multisig: multisig.address,
-        multisigSigner: multisig.signer,
-      })
-      .instruction();
-
-  const transactionAddress2: PublicKey = await dsl.proposeTransaction(newOwnerA, [transactionInstruction2], multisig.address);
-
-  try {
-    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress2);
-    fail("Should have failed to approve transaction");
-  } catch (e) {
-    assert.match(e.message,
-        new RegExp(".*Error Code: InvalidOwner. Error Number: 6000. Error Message: The given owner is not part of this multisig"));
-  }
-});
 
 test("should not allow any more approvals on a transaction if owners change", async () => {
   const multisig = await dsl.createMultisig(2, 3);

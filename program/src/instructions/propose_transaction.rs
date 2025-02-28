@@ -84,7 +84,7 @@ pub fn propose_transaction(
         multisig: *multisig_account.key,
         instructions: instruction.instructions,
         signers,
-        owner_set_seqno: 0,
+        owner_set_seqno: multisig.owner_set_seqno,
     };
     invoke(
         &system_instruction::create_account(
