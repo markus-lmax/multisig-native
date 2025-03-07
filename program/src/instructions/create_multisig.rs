@@ -37,6 +37,7 @@ pub fn create_multisig(
         threshold: instruction.threshold,
         nonce: instruction.nonce,
         owner_set_seqno: 0,
+        padding: vec![]
     };
     invoke(
         &system_instruction::create_account(

@@ -21,7 +21,7 @@ pub enum MultisigError {
     InvalidOwnerSetSequenceNumber,
     #[error("The number of owners must be greater than zero.")]
     NotEnoughOwners,
-    #[error("The number of owners must not be increased.")]
+    #[error("The number of owners must not be increased above its original value.")]
     TooManyOwners,
     #[error("The executor must be a signer and an owner of this multisig.")]
     InvalidExecutor,

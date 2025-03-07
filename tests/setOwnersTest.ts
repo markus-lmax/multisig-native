@@ -27,8 +27,7 @@ describe("set owners", async () => {
     assert.strictEqual(actualMultisig["owner_set_seqno"], 1);
   });
 
-  // TODO is there some Anchor magic that makes this work?
-  test.skip("allows re-expansion of owner list", async () => {
+  test("allows re-expansion of owner list", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, ownerC] = multisig.owners;
 
@@ -211,8 +210,7 @@ describe("set owners", async () => {
     assert.strictEqual(actualMultisig["owner_set_seqno"], 1, "Should have incremented owner set seq number");
   });
 
-  /* TODO
-  test("should not allow increasing number of owners of multisig", async () => {
+  test("should not allow increasing number of owners of multisig above its original value", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC, newOwnerD] =
@@ -225,10 +223,8 @@ describe("set owners", async () => {
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
 
     const txMeta = await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
-    assert.strictEqual(txMeta.result, "TODO number of owners cannot be increased");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith("TODO"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith("TODO"));
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x7");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-5].endsWith(" assertion failed - program error: TooManyOwners (The number of owners must not be increased above its original value.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x7"));
   });
-
-   */
 });

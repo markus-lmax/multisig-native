@@ -2,7 +2,7 @@ use crate::errors::{assert_that, assert_unique_owners, MultisigError};
 use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
-use solana_program::pubkey::Pubkey;
+use solana_program::pubkey::{Pubkey, PUBKEY_BYTES};
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg,
 };
@@ -24,6 +24,11 @@ pub fn set_owners(
 
     validate(&multisig_data, &instruction.owners)?;
 
+    // the padding ensures the multisig account size stays constant when decreasing the number of owners
+    // (so that it can be re-expanded to the original number of owners later)
+    let padding_len = multisig_data.padding.len() +
+        PUBKEY_BYTES * (multisig_data.owners.len() - instruction.owners.len());
+    multisig_data.padding = vec![0; padding_len];
     multisig_data.owners = instruction.owners;
     multisig_data.owner_set_seqno += 1;
     if (multisig_data.owners.len() as u8) < multisig_data.threshold {
@@ -38,9 +43,6 @@ fn validate(multisig: &Multisig, owners: &[Pubkey]) -> ProgramResult {
     assert_that(!owners.is_empty(), MultisigError::NotEnoughOwners)?;
     // Increasing the number of owners requires reallocation of space in the data account.
     // This requires a signer to pay the fees for more space, but the instruction will be executed by the multisig.
-    // TODO require!(multisig_data_len!(owners.len()) <= multisig.to_account_info().data.borrow().len(), ErrorCode::TooManyOwners);
-    // assert_that(owners.len() <= multisig.owners.len(), MultisigError::TooManyOwners)?;
+    assert_that(owners.len() * PUBKEY_BYTES <= multisig.owners.len() * PUBKEY_BYTES + multisig.padding.len(), MultisigError::TooManyOwners)?;
     Ok(())
 }
-
-
