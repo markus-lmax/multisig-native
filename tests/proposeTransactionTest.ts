@@ -54,7 +54,7 @@ describe("propose transaction", async () => {
 
   // the anchor version also validates that the payer is a signer (via the `Signer` trait), but it feels this is implicit
   // (at least I did not manage to write a test that would successfully get to the propose_transaction method without the payer having signed)
-  test("validate proposer is signer", async () => {
+  test("should not be able to propose a transaction if user is not an owner", async () => {
     const multisig = await dsl.createMultisig(2, 3);
 
     const [_, txMeta] = await dsl.proposeTransactionWithProposerNotSigner(multisig.owners[0], [], multisig.address);
@@ -64,7 +64,7 @@ describe("propose transaction", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x3"));
   })
 
-  test("validate at least one instruction", async () => {
+  test("should not be able to propose a transaction with empty instructions", async () => {
     const multisig = await dsl.createMultisig(2, 3);
 
     const [_, txMeta] = await dsl.proposeTransaction(multisig.owners[0], [], multisig.address);

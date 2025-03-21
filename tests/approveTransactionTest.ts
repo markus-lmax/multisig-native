@@ -10,7 +10,7 @@ describe("approve transaction", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("approve transaction", async () => {
+  test("update signers list when an owner approves", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     let transactionInstruction = SystemProgram.transfer({
