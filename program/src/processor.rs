@@ -5,6 +5,7 @@ use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 
 use crate::instructions::approve_transaction::approve_transaction;
+use crate::instructions::cancel_transaction::cancel_transaction;
 use crate::instructions::create_multisig::{create_multisig, CreateMultisigInstruction};
 use crate::instructions::execute_transaction::execute_transaction;
 use crate::instructions::propose_transaction::{
@@ -19,6 +20,7 @@ pub enum MultisigInstruction {
     ProposeTransaction(ProposeTransactionInstruction),
     ApproveTransaction(),
     ExecuteTransaction(),
+    CancelTransaction(),
 }
 
 pub fn process_instruction(
@@ -39,6 +41,7 @@ pub fn process_instruction(
             }
             MultisigInstruction::ApproveTransaction() => approve_transaction(accounts),
             MultisigInstruction::ExecuteTransaction() => execute_transaction(program_id, accounts),
+            MultisigInstruction::CancelTransaction() => cancel_transaction(program_id, accounts),
         };
     }
     Err(ProgramError::InvalidInstructionData)
