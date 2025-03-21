@@ -286,4 +286,60 @@ describe("execute transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x8");
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
+
+  test("should handle multiple transactions in parallel", async () => {
+    const multisig = await dsl.createMultisig(2, 3, 2_000_000);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    await dsl.assertBalance(multisig.signer, 2_000_000);
+
+    const [txAddress1, _txMeta1] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress1);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
+
+    await dsl.executeTransaction(txAddress1, transactionInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+    await dsl.executeTransaction(txAddress2, transactionInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+
+    await dsl.assertBalance(multisig.signer, 0);
+  });
+
+  test("should transfer funds from two different multisig accounts", async () => {
+    const [ownerA, ownerB, ownerC, ownerD] = Array.from({length: 4}, (_, _n) => Keypair.generate());
+    const multisig1 = await dsl.createMultisigWithOwners(2, [ownerA, ownerB, ownerC], 1_000_000);
+    const multisig2 = await dsl.createMultisigWithOwners(2, [ownerB, ownerC, ownerD], 1_100_000);
+    await dsl.assertBalance(multisig1.signer, 1_000_000);
+    await dsl.assertBalance(multisig2.signer, 1_100_000);
+
+    const transactionInstruction1 = SystemProgram.transfer({
+      fromPubkey: multisig1.signer,
+      lamports: 50_000,
+      toPubkey: context.payer.publicKey,
+    });
+    const transactionInstruction2 = SystemProgram.transfer({
+      fromPubkey: multisig2.signer,
+      lamports: 100_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    const [txAddress1, _txMeta1] = await dsl.proposeTransaction(ownerA, [transactionInstruction1], multisig1.address);
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerB, [transactionInstruction2], multisig2.address);
+
+    await dsl.approveTransaction(ownerB, multisig1.address, txAddress1);
+    await dsl.approveTransaction(ownerC, multisig2.address, txAddress2);
+
+    await dsl.executeTransaction(txAddress1, transactionInstruction1, multisig1.signer, multisig1.address, ownerB, ownerA.publicKey);
+    await dsl.executeTransaction(txAddress2, transactionInstruction2, multisig2.signer, multisig2.address, ownerC, ownerA.publicKey);
+
+    await dsl.assertBalance(multisig1.signer, 950_000);
+    await dsl.assertBalance(multisig2.signer, 1_000_000);
+  });
 });
