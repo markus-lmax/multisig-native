@@ -85,13 +85,17 @@ describe("propose transaction", async () => {
 
     const txKeypair: Keypair = Keypair.generate();
     const [txAddress1, txMeta1] = await dsl.proposeTransaction(multisig.owners[0], [transactionInstruction], multisig.address, txKeypair);
+    // avoid posting the same TX in the same block (TODO quick and dirty, would be better to wait until block height increases instead)
+    await new Promise((resolve) => setTimeout(resolve, 500));
     const [txAddress2, txMeta2] = await dsl.proposeTransaction(multisig.owners[0], [transactionInstruction], multisig.address, txKeypair);
 
     assert.strictEqual(txAddress1.toBase58(), txKeypair.publicKey.toBase58());
     assert.strictEqual(txMeta1.result, null);
 
     assert.strictEqual(txAddress2.toBase58(), txKeypair.publicKey.toBase58());
+    console.log(txMeta2.result);
     assert.strictEqual(txMeta2.result, "Error processing Instruction 0: custom program error: 0x0");
+
     assert(txMeta2.meta.logMessages[txMeta2.meta.logMessages.length-4].endsWith(" already in use"));
     assert(txMeta2.meta.logMessages[txMeta2.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
