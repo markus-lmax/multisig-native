@@ -1,4 +1,12 @@
-import {Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, VoteProgram} from "@solana/web3.js";
+import {
+  Commitment,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+  VoteProgram
+} from "@solana/web3.js";
 import {BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
 import {
   createApproveTransactionInstruction,
@@ -17,6 +25,7 @@ import {
   TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
 import {Multisig} from "./state";
+import {createCancelTransactionInstruction} from "./instructions/cancelTransaction";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -176,6 +185,12 @@ export class MultisigDsl {
     return await this.executeTransactionWithMultipleInstructions(txAccount, [ix], multisigSigner, multisigAddress, executor, refundee);
   }
 
+  async cancelTransaction(txAddress: PublicKey, multisigAddress: PublicKey, executor: Keypair, refundee: PublicKey) {
+    const cancel = createCancelTransactionInstruction(
+        multisigAddress, txAddress, refundee, executor.publicKey, this.programId);
+    return await this.createAndProcessTx([cancel], this.programTestContext.payer, [executor]);
+  }
+
   async createTokenMint(decimals: number = 3, initialSolBalance: number = 7_000_000): Promise<TokenMint> {
     const mintOwner = Keypair.generate();
 
@@ -249,9 +264,9 @@ export class MultisigDsl {
     return Multisig.deserialize(multisigAccountInfo?.data);
   }
 
-  async getTransactionAccount(address: PublicKey): Promise<TransactionAccount>
+  async getTransactionAccount(address: PublicKey, commitment?: Commitment): Promise<TransactionAccount>
   {
-    const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address);
+    const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address, commitment);
     assert.isNotNull(transactionAccountInfo);
     return TransactionAccount.deserialize(transactionAccountInfo?.data);
   }

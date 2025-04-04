@@ -41,7 +41,7 @@ pub fn process_instruction(
             }
             MultisigInstruction::ApproveTransaction() => approve_transaction(accounts),
             MultisigInstruction::ExecuteTransaction() => execute_transaction(program_id, accounts),
-            MultisigInstruction::CancelTransaction() => cancel_transaction(program_id, accounts),
+            MultisigInstruction::CancelTransaction() => cancel_transaction(accounts),
         };
     }
     Err(ProgramError::InvalidInstructionData)
