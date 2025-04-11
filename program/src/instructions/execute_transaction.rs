@@ -1,4 +1,5 @@
 use crate::errors::{assert_that, MultisigError};
+use crate::instructions::common::close_account;
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::BorshDeserialize;
@@ -6,7 +7,6 @@ use solana_program::account_info::next_account_info;
 use solana_program::instruction::Instruction;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
-use solana_program::system_program;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
 pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
@@ -72,13 +72,5 @@ pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    // close account
-    **refundee.lamports.borrow_mut() = refundee.lamports()
-        .checked_add(transaction_account.lamports())
-        .ok_or(MultisigError::AccountCloseFailure)?;
-    **transaction_account.lamports.borrow_mut() = 0;
-    transaction_account.assign(&system_program::ID);
-    transaction_account.realloc(0, false)?;
-
-    Ok(())
+    close_account(transaction_account, refundee)
 }

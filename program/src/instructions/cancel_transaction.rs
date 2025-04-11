@@ -1,9 +1,10 @@
 use crate::errors::{assert_that, MultisigError};
+use crate::instructions::common::close_account;
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::BorshDeserialize;
 use solana_program::account_info::next_account_info;
-use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_program};
+use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
 pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
     msg!("invoke cancel_transaction");
@@ -16,15 +17,7 @@ pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
 
     validate(multisig_account, transaction_account, executor)?;
 
-    // close account
-    **refundee.lamports.borrow_mut() = refundee.lamports()
-        .checked_add(transaction_account.lamports())
-        .ok_or(MultisigError::AccountCloseFailure)?;
-    **transaction_account.lamports.borrow_mut() = 0;
-    transaction_account.assign(&system_program::ID);
-    transaction_account.realloc(0, false)?;
-
-    Ok(())
+    close_account(transaction_account, refundee)
 }
 
 fn validate(multisig_account: &AccountInfo, transaction_account: &AccountInfo, executor: &AccountInfo) -> ProgramResult {
