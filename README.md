@@ -8,6 +8,7 @@
 
 # TODOs
 
+- is the method to close transaction accounts correct?
 - equivalent of `anchor build --verifiable`?
 - publish idl using Shank (see https://github.com/solana-developers/program-examples/tree/main/tools/shank-and-solita/native)
 - why was threshold of type u64 in the anchor impl? (changed to u8 for now, avoids having to use BN on the TS/test side)

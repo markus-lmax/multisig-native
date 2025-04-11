@@ -3,8 +3,6 @@ use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::BorshDeserialize;
 use solana_program::account_info::next_account_info;
-use solana_program::rent::Rent;
-use solana_program::sysvar::Sysvar;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg, system_program};
 
 pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
@@ -18,13 +16,13 @@ pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
 
     validate(multisig_account, transaction_account, executor)?;
 
-    let account_span = 0usize;
-    let lamports_required = Rent::get()?.minimum_balance(account_span);
-    let lamports_to_refund = transaction_account.lamports() - lamports_required;
-    **transaction_account.lamports.borrow_mut() -= lamports_to_refund;
-    **refundee.lamports.borrow_mut() += lamports_to_refund;
-    transaction_account.realloc(account_span, true)?;
+    // close account
+    **refundee.lamports.borrow_mut() = refundee.lamports()
+        .checked_add(transaction_account.lamports())
+        .ok_or(MultisigError::AccountCloseFailure)?;
+    **transaction_account.lamports.borrow_mut() = 0;
     transaction_account.assign(&system_program::ID);
+    transaction_account.realloc(0, false)?;
 
     Ok(())
 }

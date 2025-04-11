@@ -24,13 +24,10 @@ describe("cancel transaction", async () => {
 
     await dsl.cancelTransaction(transactionAddress, multisig.address, ownerB, ownerA.publicKey);
 
-    await dsl.assertBalance(ownerA.publicKey, 1_162_320); // this is the rent exemption amount
-    // TODO rent exemption amount is 2_108_880 for anchor version, probably because I use "safe delete" which leaves around the following for the TX account:
-    // {"executable":false,"owner":"11111111111111111111111111111111","lamports":890880,"data":{},"rentEpoch":18446744073709552000}
-    // -> try closing with the "unsafe" variant that is already used in execute_transaction.rs
+    await dsl.assertBalance(ownerA.publicKey, 2_053_200); // this is the rent exemption amount
 
     const transactionAccountInfo = await dsl.programTestContext.banksClient.getAccount(transactionAddress, "confirmed");
-    assert.strictEqual(transactionAccountInfo.data.length, 0);
+    assert.strictEqual(transactionAccountInfo, null);
   });
 
   // TODO port remaining tests from multisigCancelTransactionTest.js
