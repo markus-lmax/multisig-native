@@ -1,4 +1,4 @@
-use crate::errors::{assert_present, assert_that, MultisigError};
+use crate::errors::{assert_present, assert_success, assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -15,7 +15,11 @@ pub fn approve_transaction(
     let approver = next_account_info(accounts_iter)?;
 
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
-    let mut transaction = Transaction::try_from_slice(&transaction_account.data.borrow())?;
+    let mut transaction = assert_success(
+        Transaction::try_from_slice(&transaction_account.data.borrow()),
+        MultisigError::MalformedTransactionAccount
+    )?;
+
 
     validate(&multisig, &transaction)?;
 
