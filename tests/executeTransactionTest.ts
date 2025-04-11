@@ -261,7 +261,8 @@ describe("execute transaction", async () => {
     const txResult = await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
     await dsl.assertBalance(multisig.signer, 990_000);
 
-    assert.strictEqual(txResult.result, "Error processing Instruction 0: Failed to serialize or deserialize account data: Unknown");
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: MalformedTransactionAccount (The given transaction account is missing or not in the expected format.)"))
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
   });
 
   test("should not let a non-owner execute transaction", async () => {

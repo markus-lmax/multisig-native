@@ -1,4 +1,4 @@
-use crate::errors::{assert_that, MultisigError};
+use crate::errors::{assert_success, assert_that, MultisigError};
 use crate::instructions::common::close_account;
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
@@ -23,7 +23,10 @@ pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     let executor = next_account_info(accounts_iter)?;
 
     let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
-    let transaction = Transaction::try_from_slice(&transaction_account.data.borrow())?;
+    let transaction = assert_success(
+        Transaction::try_from_slice(&transaction_account.data.borrow()),
+        MultisigError::MalformedTransactionAccount
+    )?;
 
     assert_that(executor.is_signer && multisig.owners.contains(executor.key), MultisigError::InvalidExecutor)?;
     assert_that(multisig.owner_set_seqno == transaction.owner_set_seqno, MultisigError::InvalidOwnerSetSequenceNumber)?;

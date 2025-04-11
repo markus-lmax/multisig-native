@@ -37,13 +37,21 @@ pub enum MultisigError {
     NotEnoughSigners,
     #[error("Failed to close the transaction account.")]
     AccountCloseFailure,
-
+    #[error("The given transaction account is missing or not in the expected format.")]
+    MalformedTransactionAccount,
 }
 
 impl From<MultisigError> for ProgramError {
     fn from(e: MultisigError) -> Self {
        ProgramError::Custom(e as u32)
    }
+}
+
+pub fn assert_success<T, E>(result: Result<T, E>, error: impl Into<ProgramError> + Debug + Display) -> Result<T, ProgramError> {
+    match result {
+        Ok(v) => Ok(v),
+        Err(_) => Err(log(error))
+    }
 }
 
 pub fn assert_present<T>(option: Option<T>, error: impl Into<ProgramError> + Debug + Display) -> Result<T, ProgramError> {
