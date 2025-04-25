@@ -10,6 +10,8 @@ import {
 import {BanksTransactionResultWithMeta, ProgramTestContext} from "solana-bankrun";
 import {
   createApproveTransactionInstruction,
+  createCancelTransactionInstruction,
+  createChangeThresholdInstruction,
   createCreateMultisigInstruction,
   createExecuteTransactionInstruction,
   createProposeTransactionInstruction,
@@ -25,7 +27,6 @@ import {
   TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
 import {Multisig} from "./state";
-import {createCancelTransactionInstruction} from "./instructions/cancelTransaction";
 
 export interface MultisigAccount {
   address: PublicKey;
@@ -135,6 +136,10 @@ export class MultisigDsl {
 
   createSetOwnersInstruction(multisig: PublicKey, newOwners: PublicKey[]): TransactionInstruction {
     return createSetOwnersInstruction(multisig, newOwners, this.programId);
+  }
+
+  createChangeThresholdInstruction(multisig: PublicKey, newThreshold: number): TransactionInstruction {
+    return createChangeThresholdInstruction(multisig, newThreshold, this.programId);
   }
 
   async assertBalance(address: PublicKey, expectedBalance: number) {
