@@ -1,11 +1,10 @@
 use crate::errors::{assert_success, assert_that, MultisigError};
-use crate::instructions::common::close_account;
+use crate::instructions::common::{close_account, validate_signer};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::BorshDeserialize;
 use solana_program::account_info::next_account_info;
 use solana_program::instruction::Instruction;
-use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
@@ -31,14 +30,7 @@ pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> Pro
     assert_that(executor.is_signer && multisig.owners.contains(executor.key), MultisigError::InvalidExecutor)?;
     assert_that(multisig.owner_set_seqno == transaction.owner_set_seqno, MultisigError::InvalidOwnerSetSequenceNumber)?;
 
-    let pda_address = Pubkey::create_program_address(
-        &[multisig_account.key.as_ref(), &[multisig.nonce][..]],
-        &program_id,
-    ).map_err(|err| {
-        msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig_account.key, multisig.nonce, err);
-        ProgramError::InvalidSeeds
-    })?;
-    assert_that(multisig_signer.key.as_ref() == pda_address.as_ref(), ProgramError::InvalidSeeds)?;
+    validate_signer(multisig_signer, multisig_account, &multisig, program_id)?;
 
     assert_that(transaction_account.is_writable, MultisigError::ImmutableTransactionAccount)?;
     assert_that(transaction.multisig == *multisig_account.key, MultisigError::InvalidTransactionAccount)?;

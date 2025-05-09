@@ -138,8 +138,12 @@ export class MultisigDsl {
     return createSetOwnersInstruction(multisig, newOwners, this.programId);
   }
 
-  createChangeThresholdInstruction(multisig: PublicKey, newThreshold: number): TransactionInstruction {
-    return createChangeThresholdInstruction(multisig, newThreshold, this.programId);
+  createChangeThresholdInstruction(multisig: MultisigAccount, newThreshold: number): TransactionInstruction {
+    return createChangeThresholdInstruction(multisig.signer, multisig.address, newThreshold, this.programId);
+  }
+
+  createChangeThresholdInstructionManualSigner(multisigSigner: PublicKey, multisigAddress: PublicKey, newThreshold: number): TransactionInstruction {
+    return createChangeThresholdInstruction(multisigSigner, multisigAddress, newThreshold, this.programId);
   }
 
   async assertBalance(address: PublicKey, expectedBalance: number) {

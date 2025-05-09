@@ -39,7 +39,7 @@ pub fn process_instruction(
                 set_owners(accounts, set_owners_data)
             }
             MultisigInstruction::ChangeThreshold(change_threshold_data) => {
-                change_threshold(accounts, change_threshold_data)
+                change_threshold(program_id, accounts, change_threshold_data)
             }
             MultisigInstruction::ProposeTransaction(propose_data) => {
                 propose_transaction(program_id, accounts, propose_data)

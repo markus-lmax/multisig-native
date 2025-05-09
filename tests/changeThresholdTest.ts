@@ -3,6 +3,7 @@ import {PublicKey} from "@solana/web3.js";
 import {assert} from "chai";
 import {start} from "solana-bankrun";
 import {MultisigDsl} from "../ts";
+import {fail} from "node:assert";
 
 describe("change threshold", async () => {
   const programId = PublicKey.unique();
@@ -13,7 +14,7 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
-    const changeThreshold = dsl.createChangeThresholdInstruction(multisig.address, 3);
+    const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 3);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThreshold], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     await dsl.executeTransaction(txAddress, changeThreshold, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -29,12 +30,12 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, ownerC] = multisig.owners;
 
-    const changeThresholdTo3 = dsl.createChangeThresholdInstruction(multisig.address, 3);
+    const changeThresholdTo3 = dsl.createChangeThresholdInstruction(multisig, 3);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThresholdTo3], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     await dsl.executeTransaction(txAddress, changeThresholdTo3, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
 
-    const changeThresholdTo2 = dsl.createChangeThresholdInstruction(multisig.address, 2);
+    const changeThresholdTo2 = dsl.createChangeThresholdInstruction(multisig, 2);
     const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [changeThresholdTo2], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
 
@@ -54,7 +55,7 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
-    const changeThreshold = dsl.createChangeThresholdInstruction(multisig.address, 1);
+    const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 1);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThreshold], multisig.address);
 
     // actual threshold not updated whilst tx in flight
@@ -74,10 +75,10 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
-    const changeThresholdTo1 = dsl.createChangeThresholdInstruction(multisig.address, 1);
+    const changeThresholdTo1 = dsl.createChangeThresholdInstruction(multisig, 1);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThresholdTo1], multisig.address);
 
-    const changeThresholdTo3 = dsl.createChangeThresholdInstruction(multisig.address, 3);
+    const changeThresholdTo3 = dsl.createChangeThresholdInstruction(multisig, 3);
     const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [changeThresholdTo3], multisig.address);
 
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
@@ -99,7 +100,7 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
-    const changeThreshold = dsl.createChangeThresholdInstruction(multisig.address, 0);
+    const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 0);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThreshold], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     let txResult = await dsl.executeTransaction(txAddress, changeThreshold, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -114,7 +115,7 @@ describe("change threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
-    const changeThreshold = dsl.createChangeThresholdInstruction(multisig.address, 4);
+    const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 4);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThreshold], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     let txResult = await dsl.executeTransaction(txAddress, changeThreshold, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -124,4 +125,34 @@ describe("change threshold", async () => {
     let actualThreshold = (await dsl.getMultisig(multisig.address))["threshold"];
     assert.strictEqual(actualThreshold, 2);
   });
+
+  test("should not allow to change threshold without proposing a transaction", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 1);
+
+    try {
+      const txMeta = await dsl.createAndProcessTx([changeThreshold], dsl.programTestContext.payer);
+      fail("Should have failed to execute transaction");
+    } catch (e) {
+      assert(e.message.startsWith("Signature verification failed."));
+    }
+  })
+
+  test("should not allow threshold to be changed without passing in correct multisig signer", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, ownerC] = multisig.owners;
+
+    const changeThresholdUsingPayer = dsl.createChangeThresholdInstructionManualSigner(dsl.programTestContext.payer.publicKey, multisig.address, 1);
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [changeThresholdUsingPayer], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress);
+    let txResult = await dsl.executeTransaction(txAddress, changeThresholdUsingPayer, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+
+    const changeThresholdUsingOwner = dsl.createChangeThresholdInstructionManualSigner(ownerC.publicKey, multisig.address, 1);
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [changeThresholdUsingOwner], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
+    let txResult2 = await dsl.executeTransaction(txAddress2, changeThresholdUsingOwner, multisig.signer, multisig.address, ownerC, ownerA.publicKey);
+    assert.strictEqual(txResult2.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+  });
+
 });

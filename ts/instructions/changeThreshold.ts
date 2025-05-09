@@ -4,9 +4,11 @@ import {Assignable} from "../assignable";
 import {PublicKey, TransactionInstruction} from "@solana/web3.js";
 import {MultisigInstruction} from "./index";
 
-export function createChangeThresholdInstruction(multisigAccount: PublicKey,
-                                           threshold: number,
-                                           programId: PublicKey): TransactionInstruction {
+export function createChangeThresholdInstruction(
+    multisigSigner: PublicKey,
+    multisigAccount: PublicKey,
+    threshold: number,
+    programId: PublicKey): TransactionInstruction {
   const changeThreshold = new ChangeThreshold({
     instructionDiscriminator: MultisigInstruction.ChangeThreshold,
     threshold: threshold
@@ -14,6 +16,7 @@ export function createChangeThresholdInstruction(multisigAccount: PublicKey,
   return new TransactionInstruction({
     keys: [
       { pubkey: multisigAccount, isSigner: false, isWritable: true },
+      { pubkey: multisigSigner, isSigner: true, isWritable: false },
     ],
     programId: programId,
     data: changeThreshold.toBuffer(),
