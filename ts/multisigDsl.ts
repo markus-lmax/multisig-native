@@ -134,8 +134,12 @@ export class MultisigDsl {
     return this.createAndProcessTx([approve], this.programTestContext.payer, [approver]);
   }
 
-  createSetOwnersInstruction(multisig: PublicKey, newOwners: PublicKey[]): TransactionInstruction {
-    return createSetOwnersInstruction(multisig, newOwners, this.programId);
+  createSetOwnersInstruction(multisig: MultisigAccount, newOwners: PublicKey[]): TransactionInstruction {
+    return createSetOwnersInstruction(multisig.signer, multisig.address, newOwners, this.programId);
+  }
+
+  createSetOwnersInstructionManualSigner(multisigSigner: PublicKey, multisigAddress: PublicKey, newOwners: PublicKey[]): TransactionInstruction {
+    return createSetOwnersInstruction(multisigSigner, multisigAddress, newOwners, this.programId);
   }
 
   createChangeThresholdInstruction(multisig: MultisigAccount, newThreshold: number): TransactionInstruction {

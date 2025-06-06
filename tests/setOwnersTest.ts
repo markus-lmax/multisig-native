@@ -1,4 +1,5 @@
 import {describe, test} from "node:test";
+import {fail} from "node:assert";
 import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {assert} from "chai";
 import {start} from "solana-bankrun";
@@ -15,7 +16,7 @@ describe("set owners", async () => {
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
     const newOwners = [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
     const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
     await dsl.executeTransaction(transactionAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -32,13 +33,13 @@ describe("set owners", async () => {
     const [ownerA, ownerB, ownerC] = multisig.owners;
 
     // Create and execute instruction to shrink multisig owners
-    const shrinkOwnersInstruction = dsl.createSetOwnersInstruction(multisig.address, [ownerA.publicKey, ownerB.publicKey]);
+    const shrinkOwnersInstruction = dsl.createSetOwnersInstruction(multisig, [ownerA.publicKey, ownerB.publicKey]);
     const [shrinkOwnersAddress, _txMeta1] = await dsl.proposeTransaction(ownerA, [shrinkOwnersInstruction], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, shrinkOwnersAddress);
     await dsl.executeTransaction(shrinkOwnersAddress, shrinkOwnersInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
 
     // Create and execute instruction to re-expand multisig owners
-    const expandOwnersInstruction = dsl.createSetOwnersInstruction(multisig.address, [ownerA.publicKey, ownerB.publicKey, ownerC.publicKey]);
+    const expandOwnersInstruction = dsl.createSetOwnersInstruction(multisig, [ownerA.publicKey, ownerB.publicKey, ownerC.publicKey]);
     const [expandOwnersAddress, _txMeta2]= await dsl.proposeTransaction(ownerA, [expandOwnersInstruction], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, expandOwnersAddress);
     await dsl.executeTransaction(expandOwnersAddress, expandOwnersInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -52,7 +53,7 @@ describe("set owners", async () => {
     const multisig = await dsl.createMultisig(threshold, 9);
     const newOwner = Keypair.generate();
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwner.publicKey, ...multisig.owners.slice(1).map(owner => owner.publicKey)]);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, [newOwner.publicKey, ...multisig.owners.slice(1).map(owner => owner.publicKey)]);
 
     await dsl.proposeSignAndExecuteTransaction(multisig.owners[1], multisig.owners.slice(2, threshold + 1), [setOwners], multisig.signer, multisig.address, multisig.owners[1], multisig.owners[1].publicKey);
   })
@@ -62,12 +63,12 @@ describe("set owners", async () => {
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
 
-    const setOwners2 = dsl.createSetOwnersInstruction(multisig.address, multisig.owners.map(owner => owner.publicKey));
+    const setOwners2 = dsl.createSetOwnersInstruction(multisig, multisig.owners.map(owner => owner.publicKey));
 
 
     const [_, txMeta] = await dsl.proposeTransaction(ownerA, [setOwners2], multisig.address);
@@ -82,12 +83,12 @@ describe("set owners", async () => {
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
 
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
 
-    const setOwners2 = dsl.createSetOwnersInstruction(multisig.address, multisig.owners.map(owner => owner.publicKey));
+    const setOwners2 = dsl.createSetOwnersInstruction(multisig, multisig.owners.map(owner => owner.publicKey));
     const [txAddress2, _txMeta2] = await dsl.proposeTransaction(newOwnerA, [setOwners2], multisig.address);
 
     const txMeta = await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
@@ -101,7 +102,7 @@ describe("set owners", async () => {
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
 
     const transfer = SystemProgram.transfer({
@@ -132,7 +133,7 @@ describe("set owners", async () => {
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey]);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
 
     const transfer = SystemProgram.transfer({
@@ -165,7 +166,7 @@ describe("set owners", async () => {
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
     const newOwners = [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
 
     const [_a, txMeta1] = await dsl.proposeTransactionWithProposerNotSigner(ownerA, [setOwners], multisig.address);
     assert.strictEqual(txMeta1.result, "Error processing Instruction 0: custom program error: 0x3");
@@ -179,7 +180,7 @@ describe("set owners", async () => {
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const newOwners = [];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
 
@@ -198,7 +199,7 @@ describe("set owners", async () => {
     const newOwnerA = Keypair.generate();
     const newOwners = [newOwnerA.publicKey];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
     await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
@@ -217,7 +218,7 @@ describe("set owners", async () => {
         [Keypair.generate(), Keypair.generate(), Keypair.generate(), Keypair.generate()];
     const newOwners = [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey, newOwnerD.publicKey];
 
-    const setOwners = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
 
     const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, txAddress);
@@ -226,5 +227,36 @@ describe("set owners", async () => {
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x7");
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-5].endsWith(" assertion failed - program error: TooManyOwners (The number of owners must not be increased above its original value.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x7"));
+  });
+
+  test("should not allow to set owners without proposing a transaction", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
+    const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
+
+    try {
+      const txMeta = await dsl.createAndProcessTx([setOwners], dsl.programTestContext.payer);
+      fail("Should have failed to execute transaction");
+    } catch (e) {
+      assert(e.message.startsWith("Signature verification failed."));
+    }
+  });
+
+  test("should not allow owners to be changed without passing in correct multisig signer", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, ownerC] = multisig.owners;
+    const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
+
+    const setOwnersUsingPayer = dsl.createSetOwnersInstructionManualSigner(dsl.programTestContext.payer.publicKey, multisig.address, newOwners);
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwnersUsingPayer], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress);
+    let txResult = await dsl.executeTransaction(txAddress, setOwnersUsingPayer, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+
+    const setOwnersUsingOwner = dsl.createSetOwnersInstructionManualSigner(ownerC.publicKey, multisig.address, newOwners);
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [setOwnersUsingOwner], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
+    let txResult2 = await dsl.executeTransaction(txAddress2, setOwnersUsingOwner, multisig.signer, multisig.address, ownerC, ownerA.publicKey);
+    assert.strictEqual(txResult2.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
   });
 });

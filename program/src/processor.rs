@@ -36,7 +36,7 @@ pub fn process_instruction(
                 create_multisig(program_id, accounts, create_data)
             }
             MultisigInstruction::SetOwners(set_owners_data) => {
-                set_owners(accounts, set_owners_data)
+                set_owners(program_id, accounts, set_owners_data)
             }
             MultisigInstruction::ChangeThreshold(change_threshold_data) => {
                 change_threshold(program_id, accounts, change_threshold_data)

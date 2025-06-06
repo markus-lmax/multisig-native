@@ -43,7 +43,7 @@ describe("cancel transaction", async () => {
 
     // Change owner set of the multisig while the TX account at transactionAddress is still pending
     const newOwners = [ownerA.publicKey, ownerB.publicKey, Keypair.generate().publicKey];
-    const changeOwnersInstruction = dsl.createSetOwnersInstruction(multisig.address, newOwners);
+    const changeOwnersInstruction = dsl.createSetOwnersInstruction(multisig, newOwners);
     const [changedOwnersAddress, _txMeta2]= await dsl.proposeTransaction(ownerA, [changeOwnersInstruction], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, changedOwnersAddress);
     await dsl.executeTransaction(changedOwnersAddress, changeOwnersInstruction, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
