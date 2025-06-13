@@ -28,6 +28,25 @@ describe("set owners", async () => {
     assert.strictEqual(actualMultisig["owner_set_seqno"], 1);
   });
 
+  test("should not allow old owners to propose new transaction after ownership and threshold change", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+    const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
+
+    const setOwnersAndChangeThreshold = dsl.createSetOwnersAndChangeThresholdInstruction(multisig, [newOwnerA.publicKey, newOwnerB.publicKey, newOwnerC.publicKey], 1);
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwnersAndChangeThreshold], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+    await dsl.executeTransaction(transactionAddress, setOwnersAndChangeThreshold, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+
+
+    const setOwners = dsl.createSetOwnersInstruction(multisig, multisig.owners.map(owner => owner.publicKey));
+    const [_, txMeta] = await dsl.proposeTransaction(ownerA, [setOwners], multisig.address);
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
+  });
+
+
   // TODO backfill remaining tests from original multisig
 
   // TODO adapt these tests
