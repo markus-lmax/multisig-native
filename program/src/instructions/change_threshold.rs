@@ -1,12 +1,11 @@
-use crate::errors::{assert_that, MultisigError};
+use crate::instructions::common::{execute_change_threshold, validate_signer, validate_threshold};
 use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
+use solana_program::pubkey::Pubkey;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg,
 };
-use solana_program::pubkey::Pubkey;
-use crate::instructions::common::validate_signer;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct ChangeThresholdInstruction {
@@ -26,14 +25,7 @@ pub fn change_threshold(
     let mut multisig_data = Multisig::try_from_slice(&multisig_account.data.borrow_mut())?;
 
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
-    validate(&multisig_data,instruction.threshold)?;
+    validate_threshold(&multisig_data, instruction.threshold)?;
 
-    multisig_data.threshold = instruction.threshold;
-    multisig_data.serialize(&mut &mut multisig_account.data.borrow_mut()[..])?;
-    Ok(())
-}
-
-fn validate(multisig: &Multisig, threshold: u8) -> ProgramResult {
-    assert_that(threshold > 0 && threshold <= multisig.owners.len() as u8, MultisigError::InvalidThreshold)?;
-    Ok(())
+    execute_change_threshold(&multisig_account, &mut multisig_data, instruction.threshold)
 }

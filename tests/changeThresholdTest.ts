@@ -131,7 +131,7 @@ describe("change threshold", async () => {
     const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 1);
 
     try {
-      const txMeta = await dsl.createAndProcessTx([changeThreshold], dsl.programTestContext.payer);
+      await dsl.createAndProcessTx([changeThreshold], dsl.programTestContext.payer);
       fail("Should have failed to execute transaction");
     } catch (e) {
       assert(e.message.startsWith("Signature verification failed."));

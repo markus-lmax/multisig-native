@@ -1,6 +1,7 @@
 export * from "./createMultisig";
 export * from "./setOwners";
 export * from "./changeThreshold";
+export * from "./setOwnersAndChangeThreshold";
 export * from "./proposeTransaction";
 export * from "./approveTransaction";
 export * from "./executeTransaction";
@@ -10,8 +11,9 @@ export enum MultisigInstruction {
   CreateMultisig = 0,
   SetOwners = 1,
   ChangeThreshold = 2,
-  ProposeTransaction = 3,
-  ApproveTransaction = 4,
-  ExecuteTransaction = 5,
-  CancelTransaction = 6,
+  SetOwnersAndChangeThreshold = 3,
+  ProposeTransaction = 4,
+  ApproveTransaction = 5,
+  ExecuteTransaction = 6,
+  CancelTransaction = 7,
 }

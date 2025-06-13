@@ -15,7 +15,8 @@ import {
   createCreateMultisigInstruction,
   createExecuteTransactionInstruction,
   createProposeTransactionInstruction,
-  createSetOwnersInstruction
+  createSetOwnersInstruction,
+  createSetOwnersAndChangeThresholdInstruction
 } from "./instructions";
 import {assert} from "chai";
 import {Transaction as TransactionAccount} from "./state/transaction";
@@ -148,6 +149,14 @@ export class MultisigDsl {
 
   createChangeThresholdInstructionManualSigner(multisigSigner: PublicKey, multisigAddress: PublicKey, newThreshold: number): TransactionInstruction {
     return createChangeThresholdInstruction(multisigSigner, multisigAddress, newThreshold, this.programId);
+  }
+
+  createSetOwnersAndChangeThresholdInstruction(multisig: MultisigAccount, newOwners: PublicKey[], newThreshold: number): TransactionInstruction {
+    return createSetOwnersAndChangeThresholdInstruction(multisig.signer, multisig.address, newOwners, newThreshold, this.programId);
+  }
+
+  createSetOwnersAndChangeThresholdInstructionManualSigner(multisigSigner: PublicKey, multisigAddress: PublicKey, newOwners: PublicKey[], newThreshold: number): TransactionInstruction {
+    return createSetOwnersAndChangeThresholdInstruction(multisigSigner, multisigAddress, newOwners, newThreshold, this.programId);
   }
 
   async assertBalance(address: PublicKey, expectedBalance: number) {

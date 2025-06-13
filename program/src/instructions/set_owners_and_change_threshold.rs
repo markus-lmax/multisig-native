@@ -1,4 +1,4 @@
-use crate::instructions::common::{execute_set_owners, validate_owners, validate_signer};
+use crate::instructions::common::{execute_change_threshold, execute_set_owners, validate_owners, validate_signer, validate_threshold};
 use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
@@ -8,16 +8,17 @@ use solana_program::{
 };
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct SetOwnersInstruction {
+pub struct SetOwnersAndChangeThresholdInstruction {
     pub owners: Vec<Pubkey>,
+    pub threshold: u8,
 }
 
-pub fn set_owners(
+pub fn set_owners_and_change_threshold(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    instruction: SetOwnersInstruction,
+    instruction: SetOwnersAndChangeThresholdInstruction,
 ) -> ProgramResult {
-    msg!("invoke set_owners - {:?}", instruction);
+    msg!("invoke set_owners_and_change_threshold - {:?}", instruction);
 
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
@@ -26,6 +27,8 @@ pub fn set_owners(
 
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
     validate_owners(&multisig_data, &instruction.owners)?;
-
-    execute_set_owners(&multisig_account, &mut multisig_data, instruction.owners)
+    validate_threshold(&multisig_data, instruction.threshold)?;
+    
+    execute_set_owners(&multisig_account, &mut multisig_data, instruction.owners)?;
+    execute_change_threshold(&multisig_account, &mut multisig_data, instruction.threshold)
 }

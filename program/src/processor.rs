@@ -13,12 +13,14 @@ use crate::instructions::propose_transaction::{
 };
 use crate::instructions::set_owners::{set_owners, SetOwnersInstruction};
 use crate::instructions::change_threshold::{change_threshold, ChangeThresholdInstruction};
+use crate::instructions::set_owners_and_change_threshold::{set_owners_and_change_threshold, SetOwnersAndChangeThresholdInstruction};
 
 #[derive(BorshSerialize, BorshDeserialize)]
 pub enum MultisigInstruction {
     CreateMultisig(CreateMultisigInstruction),
     SetOwners(SetOwnersInstruction),
     ChangeThreshold(ChangeThresholdInstruction),
+    SetOwnersAndChangeThreshold(SetOwnersAndChangeThresholdInstruction),
     ProposeTransaction(ProposeTransactionInstruction),
     ApproveTransaction(),
     ExecuteTransaction(),
@@ -40,6 +42,9 @@ pub fn process_instruction(
             }
             MultisigInstruction::ChangeThreshold(change_threshold_data) => {
                 change_threshold(program_id, accounts, change_threshold_data)
+            }
+            MultisigInstruction::SetOwnersAndChangeThreshold(set_owners_and_change_threshold_data) => {
+                set_owners_and_change_threshold(program_id, accounts, set_owners_and_change_threshold_data)
             }
             MultisigInstruction::ProposeTransaction(propose_data) => {
                 propose_transaction(program_id, accounts, propose_data)
