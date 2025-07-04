@@ -25,7 +25,7 @@ pub fn change_threshold(
     let mut multisig_data = Multisig::try_from_slice(&multisig_account.data.borrow_mut())?;
 
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
-    validate_threshold(&multisig_data, instruction.threshold)?;
+    validate_threshold(instruction.threshold, &multisig_data.owners)?;
 
     execute_change_threshold(&multisig_account, &mut multisig_data, instruction.threshold)
 }

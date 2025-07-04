@@ -27,7 +27,7 @@ pub fn set_owners_and_change_threshold(
 
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
     validate_owners(&multisig_data, &instruction.owners)?;
-    validate_threshold(&multisig_data, instruction.threshold)?;
+    validate_threshold(instruction.threshold, &instruction.owners)?;
     
     execute_set_owners(&multisig_account, &mut multisig_data, instruction.owners)?;
     execute_change_threshold(&multisig_account, &mut multisig_data, instruction.threshold)

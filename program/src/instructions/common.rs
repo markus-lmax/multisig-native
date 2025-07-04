@@ -61,7 +61,7 @@ pub fn validate_owners(multisig: &Multisig, owners: &[Pubkey]) -> ProgramResult 
     Ok(())
 }
 
-pub fn validate_threshold(multisig: &Multisig, threshold: u8) -> ProgramResult {
-    assert_that(threshold > 0 && threshold <= multisig.owners.len() as u8, MultisigError::InvalidThreshold)?;
+pub fn validate_threshold(threshold: u8, owners: &Vec<Pubkey>) -> ProgramResult {
+    assert_that(threshold > 0 && threshold <= owners.len() as u8, MultisigError::InvalidThreshold)?;
     Ok(())
 }
