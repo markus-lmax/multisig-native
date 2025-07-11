@@ -235,7 +235,7 @@ describe("set owners", async () => {
     const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
 
     try {
-      const txMeta = await dsl.createAndProcessTx([setOwners], dsl.programTestContext.payer);
+      await dsl.createAndProcessTx([setOwners], dsl.programTestContext.payer);
       fail("Should have failed to execute transaction");
     } catch (e) {
       assert(e.message.startsWith("Signature verification failed."));

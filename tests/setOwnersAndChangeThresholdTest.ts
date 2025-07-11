@@ -3,6 +3,7 @@ import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {assert} from "chai";
 import {start} from "solana-bankrun";
 import {MultisigDsl} from "../ts";
+import {fail} from "node:assert";
 
 describe("set owners", async () => {
   const programId = PublicKey.unique();
@@ -177,35 +178,38 @@ describe("set owners", async () => {
     assert.ok(txMeta.meta.logMessages.includes("Program log: assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"))
   });
 
-  // TODO adapt these tests
-  // test("should not allow to set owners without proposing a transaction", async () => {
-  //   const multisig = await dsl.createMultisig(2, 3);
-  //   const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
-  //   const setOwners = dsl.createSetOwnersInstruction(multisig, newOwners);
-  //
-  //   try {
-  //     const txMeta = await dsl.createAndProcessTx([setOwners], dsl.programTestContext.payer);
-  //     fail("Should have failed to execute transaction");
-  //   } catch (e) {
-  //     assert(e.message.startsWith("Signature verification failed."));
-  //   }
-  // });
-  //
-  // test("should not allow owners to be changed without passing in correct multisig signer", async () => {
-  //   const multisig = await dsl.createMultisig(2, 3);
-  //   const [ownerA, ownerB, ownerC] = multisig.owners;
-  //   const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
-  //
-  //   const setOwnersUsingPayer = dsl.createSetOwnersInstructionManualSigner(dsl.programTestContext.payer.publicKey, multisig.address, newOwners);
-  //   const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwnersUsingPayer], multisig.address);
-  //   await dsl.approveTransaction(ownerB, multisig.address, txAddress);
-  //   let txResult = await dsl.executeTransaction(txAddress, setOwnersUsingPayer, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
-  //   assert.strictEqual(txResult.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
-  //
-  //   const setOwnersUsingOwner = dsl.createSetOwnersInstructionManualSigner(ownerC.publicKey, multisig.address, newOwners);
-  //   const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [setOwnersUsingOwner], multisig.address);
-  //   await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
-  //   let txResult2 = await dsl.executeTransaction(txAddress2, setOwnersUsingOwner, multisig.signer, multisig.address, ownerC, ownerA.publicKey);
-  //   assert.strictEqual(txResult2.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
-  // });
+  test("should not allow to set owners and change threshold without proposing a transaction", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
+    const setOwnersAndChangeThreshold = dsl.createSetOwnersAndChangeThresholdInstruction(multisig, newOwners, 1);
+
+    try {
+      await dsl.createAndProcessTx([setOwnersAndChangeThreshold], dsl.programTestContext.payer);
+      fail("Should have failed to execute transaction");
+    } catch (e) {
+      assert(e.message.startsWith("Signature verification failed."));
+    }
+  });
+
+  test("should not allow owners and threshold to be changed without passing in correct multisig signer", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, ownerC] = multisig.owners;
+    const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
+
+    const setOwnersAndChangeThresholdUsingPayer = dsl.createSetOwnersAndChangeThresholdInstructionManualSigner(
+        dsl.programTestContext.payer.publicKey, multisig.address, newOwners, 1
+    );
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [setOwnersAndChangeThresholdUsingPayer], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress);
+    let txResult = await dsl.executeTransaction(txAddress, setOwnersAndChangeThresholdUsingPayer, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+
+    const setOwnersAndChangeThresholdUsingOwner = dsl.createSetOwnersAndChangeThresholdInstructionManualSigner(
+        ownerC.publicKey, multisig.address, newOwners, 1
+    );
+    const [txAddress2, _txMeta2] = await dsl.proposeTransaction(ownerA, [setOwnersAndChangeThresholdUsingOwner], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
+    let txResult2 = await dsl.executeTransaction(txAddress2, setOwnersAndChangeThresholdUsingOwner, multisig.signer, multisig.address, ownerC, ownerA.publicKey);
+    assert.strictEqual(txResult2.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
+  });
 });
