@@ -1,4 +1,9 @@
 {
+  "pnpm": {
+    "overrides": {
+      "ts-node": "10.9.2"
+    }
+  },
   "scripts": {
     "test": "SBF_OUT_DIR=program/target/so  pnpm ts-mocha -p ./tests/tsconfig.test.json -t 1000000 tests/*Test.ts",
     "build": "cargo build-sbf --manifest-path=./program/Cargo.toml --sbf-out-dir=./program/target/so",
@@ -16,7 +21,12 @@
     "mocha": "^10.7.0",
     "solana-bankrun": "^0.3.0",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "@solana/buffer-layout": "^4.0.1",
+    "@solana/spl-token-group": "^0.0.7",
+    "@solana/spl-token-metadata": "^0.1.6",
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2"
   },
   "packageManager": "pnpm@9.12.0+sha512.4abf725084d7bcbafbd728bfc7bee61f2f791f977fd87542b3579dcb23504d170d46337945e4c66485cd12d588a0c0e570ed9c477e7ccdd8507cf05f3f92eaca"
 }
