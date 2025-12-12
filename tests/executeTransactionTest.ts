@@ -343,4 +343,32 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig1.signer, 950_000);
     await dsl.assertBalance(multisig2.signer, 1_000_000);
   });
+
+  test("prevent burning funds by ensuring refundee is different from account being closed", async () => {
+    const multisig = await dsl.createMultisig(2, 2, 2_000_000);
+    const [ownerA, ownerB] = multisig.owners;
+
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 100_000,
+      toPubkey: Keypair.generate().publicKey,
+    });
+    const [transactionAddress, _proposeMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+    await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
+
+    const txResult = await dsl.executeTransaction(
+        transactionAddress,
+        transactionInstruction,
+        multisig.signer,
+        multisig.address,
+        ownerA,
+        transactionAddress // Crucially, the refundee is the account being closed
+    );
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: InvalidRefundeeAccount (The refundee account must not be the same as the transaction account.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xb");
+
+    const transactionAccountInfo = await dsl.programTestContext.banksClient.getAccount(transactionAddress, "confirmed");
+    assert.notEqual(transactionAccountInfo, null, "Transaction account should not have been closed on error.");
+  });
 });

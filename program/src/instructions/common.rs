@@ -8,12 +8,13 @@ use crate::errors::{assert_that, assert_unique_owners, MultisigError};
 use crate::state::multisig::Multisig;
 
 pub fn close_account(account: &AccountInfo, refundee: &AccountInfo) -> ProgramResult {
-    **refundee.lamports.borrow_mut() = refundee.lamports()
-        .checked_add(account.lamports())
-        .ok_or(MultisigError::AccountCloseFailure)?;
+    let lamports = account.lamports();
     **account.lamports.borrow_mut() = 0;
-    account.assign(&system_program::ID);
+    **refundee.lamports.borrow_mut() = refundee.lamports()
+        .checked_add(lamports)
+        .ok_or(MultisigError::AccountCloseFailure)?;
     account.realloc(0, false)?;
+    account.assign(&system_program::ID);
 
     Ok(())
 }
