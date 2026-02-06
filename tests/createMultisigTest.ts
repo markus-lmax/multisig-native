@@ -2,7 +2,9 @@ import {describe, test} from "node:test";
 import {Keypair, PublicKey} from "@solana/web3.js";
 import {assert} from "chai";
 import {start} from "solana-bankrun";
-import {Multisig, MultisigDsl} from "../ts";
+import {MultisigDsl} from "../ts";
+import {TOKEN_PROGRAM_ID} from "@solana/spl-token";
+import {createCreateMultisigInstruction} from "../ts";
 
 describe("create multisig", async () => {
   const programId = PublicKey.unique();
@@ -75,6 +77,25 @@ describe("create multisig", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
 
+  test("do not create multisig for already initialized account", async () => {
+    const multisigAddress = Keypair.generate();
+    await dsl.createInitializedAccount(multisigAddress.publicKey, TOKEN_PROGRAM_ID, 1000000, Buffer.from("some initial data"));
+
+    const owners = [Keypair.generate(), Keypair.generate()];
+    const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(
+        [multisigAddress.publicKey.toBuffer()],
+        programId
+    );
+    const payer = dsl.programTestContext.payer;
+    const createMultisig = createCreateMultisigInstruction(
+        programId, 1, owners, nonce, multisigAddress.publicKey, multisigSigner, payer.publicKey
+    );
+    let txMeta = await dsl.createAndProcessTx([createMultisig], payer, [multisigAddress]);
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length - 4].endsWith("Create Account: account Address { address: " + multisigAddress.publicKey.toBase58() + ", base: None } already in use"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+  });
+
   test("do not create multisig with duplicate owners", async () => {
     const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
     let txMeta = (await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB])).txMeta;
@@ -87,5 +108,13 @@ describe("create multisig", async () => {
     let txMeta = (await dsl.createMultisigWithBadNonce()).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: Provided seeds do not result in a valid address"));
+  });
+
+  test("do not create multisig with incorrect system program id", async () => {
+   const multisig = await dsl.createMultisigWithInvalidSystemProgramId();
+
+    assert.strictEqual(multisig.txMeta.result, "Error processing Instruction 0: incorrect program id for instruction");
+    assert(multisig.txMeta.meta.logMessages[multisig.txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)"));
+    assert(multisig.txMeta.meta.logMessages[multisig.txMeta.meta.logMessages.length-1].endsWith(" failed: incorrect program id for instruction"));
   });
 });

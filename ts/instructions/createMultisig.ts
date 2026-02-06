@@ -10,7 +10,8 @@ export function createCreateMultisigInstruction(programId: PublicKey,
                                                 nonce: number,
                                                 multisigAccount: PublicKey,
                                                 multisigSigner: PublicKey,
-                                                payer: PublicKey): TransactionInstruction {
+                                                payer: PublicKey,
+                                                systemProgramId: PublicKey = SystemProgram.programId): TransactionInstruction {
   const createMultisig = new CreateMultisig({
     instructionDiscriminator: MultisigInstruction.CreateMultisig,
     owners: owners.map(owner => owner.publicKey.toBuffer()),
@@ -22,7 +23,7 @@ export function createCreateMultisigInstruction(programId: PublicKey,
       {pubkey: multisigAccount, isSigner: true, isWritable: true},
       {pubkey: multisigSigner, isSigner: false, isWritable: false},
       {pubkey: payer, isSigner: true, isWritable: true},
-      {pubkey: SystemProgram.programId, isSigner: false, isWritable: false},
+      {pubkey: systemProgramId, isSigner: false, isWritable: false},
     ],
     programId: programId,
     data: createMultisig.toBuffer(),

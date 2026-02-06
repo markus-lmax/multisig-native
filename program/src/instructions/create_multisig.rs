@@ -6,6 +6,7 @@ use solana_program::program::invoke;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
+use solana_program::system_program;
 use solana_program::sysvar::Sysvar;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, system_instruction,
@@ -30,7 +31,7 @@ pub fn create_multisig(
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    validate(program_id, multisig_account, multisig_signer, payer, system_program, &instruction)?;
+    validate(program_id, multisig_account, multisig_signer, system_program, &instruction)?;
 
     let multisig_data = Multisig {
         owners: instruction.owners,
@@ -57,15 +58,10 @@ fn validate(
     program_id: &Pubkey,
     multisig: &AccountInfo,
     multisig_signer: &AccountInfo,
-    _payer: &AccountInfo,
-    _system_program: &AccountInfo,
+    system_program: &AccountInfo,
     instruction: &CreateMultisigInstruction,
 ) -> ProgramResult {
-    // TODO: check that multisig account is not already initialized (e.g. has 0 lamports and no data)
-    // TODO: check that multisig account is a signer
-    // TODO: check that payer is a signer
-    // TODO: check that payer is mutable
-    // TODO: check that system_program is the system program id
+    assert_that(system_program.key == &system_program::ID, ProgramError::IncorrectProgramId)?;
     assert_unique_owners(&instruction.owners)?;
     assert_that(
         instruction.threshold > 0 && instruction.threshold <= instruction.owners.len() as u8,

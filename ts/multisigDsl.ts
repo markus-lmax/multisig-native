@@ -56,7 +56,8 @@ export class MultisigDsl {
   async createMultisigWithOwners(threshold: number,
                                  owners: Keypair[],
                                  initialBalance: number = 0,
-                                 useInvalidNonce: boolean = false): Promise<MultisigAccount> {
+                                 useInvalidNonce: boolean = false,
+                                 systemProgramId: PublicKey = SystemProgram.programId): Promise<MultisigAccount> {
     const multisig = Keypair.generate();
     const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(
       [multisig.publicKey.toBuffer()],
@@ -64,7 +65,7 @@ export class MultisigDsl {
     );
     const payer = this.programTestContext.payer;
     const createMultisig = createCreateMultisigInstruction(
-      this.programId, threshold, owners, useInvalidNonce ? nonce - 1 : nonce, multisig.publicKey, multisigSigner, payer.publicKey
+      this.programId, threshold, owners, useInvalidNonce ? nonce - 1 : nonce, multisig.publicKey, multisigSigner, payer.publicKey, systemProgramId
     );
     const txMeta = await this.createAndProcessTx([createMultisig], payer, [multisig]);
 
@@ -94,6 +95,32 @@ export class MultisigDsl {
 
   async createMultisigWithBadNonce(): Promise<MultisigAccount> {
     return this.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate()], 0, true);
+  }
+
+  async createMultisigWithInvalidSystemProgramId(): Promise<MultisigAccount> {
+    return this.createMultisigWithOwners(2, [Keypair.generate(), Keypair.generate()], 0, false, VoteProgram.programId);
+  }
+
+    async createMultisigWithIncorrectSystemProgram(threshold: number, owners: Keypair[]): Promise<MultisigAccount> {
+    const multisig = Keypair.generate();
+    const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(
+        [multisig.publicKey.toBuffer()],
+        this.programId
+    );
+    const payer = this.programTestContext.payer;
+    const createMultisig = createCreateMultisigInstruction(
+        this.programId, threshold, owners, nonce, multisig.publicKey, multisigSigner, payer.publicKey, VoteProgram.programId
+    );
+    const txMeta = await this.createAndProcessTx([createMultisig], payer, [multisig]);
+
+    return {
+      address: multisig.publicKey,
+      signer: multisigSigner,
+      nonce: nonce,
+      owners: owners,
+      threshold: threshold,
+      txMeta: txMeta
+    };
   }
 
   async proposeTransaction(proposer: Keypair,
@@ -291,6 +318,16 @@ export class MultisigDsl {
     const transactionAccountInfo = await this.programTestContext.banksClient.getAccount(address, commitment);
     assert.isNotNull(transactionAccountInfo);
     return TransactionAccount.deserialize(transactionAccountInfo?.data);
+  }
+
+  async createInitializedAccount(pubkey: PublicKey, owner: PublicKey, lamports: number, data: Buffer) {
+    const accountInfo = {
+      lamports: lamports,
+      data: data,
+      owner: owner,
+      executable: false,
+    };
+    this.programTestContext.setAccount(pubkey, accountInfo);
   }
 
   async proposeSignAndExecuteTransaction(
