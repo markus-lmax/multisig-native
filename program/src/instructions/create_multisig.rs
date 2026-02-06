@@ -37,7 +37,7 @@ pub fn create_multisig(
         threshold: instruction.threshold,
         nonce: instruction.nonce,
         owner_set_seqno: 0,
-        padding: vec![]
+        padding: vec![],
     };
     invoke(
         &system_instruction::create_account(
@@ -61,7 +61,11 @@ fn validate(
     _system_program: &AccountInfo,
     instruction: &CreateMultisigInstruction,
 ) -> ProgramResult {
-    // TODO test and implement anchor-internal checks
+    // TODO: check that multisig account is not already initialized (e.g. has 0 lamports and no data)
+    // TODO: check that multisig account is a signer
+    // TODO: check that payer is a signer
+    // TODO: check that payer is mutable
+    // TODO: check that system_program is the system program id
     assert_unique_owners(&instruction.owners)?;
     assert_that(
         instruction.threshold > 0 && instruction.threshold <= instruction.owners.len() as u8,
@@ -70,13 +74,11 @@ fn validate(
     let pda_address = Pubkey::create_program_address(
         &[multisig.key.as_ref(), &[instruction.nonce][..]],
         &program_id,
-    ).map_err(|err| {
+    )
+    .map_err(|err| {
         msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig.key, instruction.nonce, err);
         ProgramError::InvalidSeeds
     })?;
-    assert_that(
-        multisig_signer.key.as_ref() == pda_address.as_ref(),
-        ProgramError::InvalidSeeds,
-    )?;
+    assert_that(multisig_signer.key.as_ref() == pda_address.as_ref(), ProgramError::InvalidSeeds)?;
     Ok(())
 }

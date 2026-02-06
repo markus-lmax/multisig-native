@@ -68,6 +68,13 @@ describe("create multisig", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
   });
 
+  test("do not create multisig with empty owners list", async () => {
+    let txMeta = (await dsl.createMultisigWithOwners(1, [])).txMeta;
+    assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
+    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+  });
+
   test("do not create multisig with duplicate owners", async () => {
     const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
     let txMeta = (await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB])).txMeta;
