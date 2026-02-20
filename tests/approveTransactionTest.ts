@@ -93,6 +93,55 @@ describe("approve transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
+  test("should not allow non-signer to approve", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    const txResult = await dsl.approveTransaction(ownerB, multisig.address, txAddress, false);
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: ApproverNotSigner (The approver must be a signer.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x10");
+  });
+
+  test("should not allow approval with read-only transaction account", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    const txResult = await dsl.approveTransaction(ownerB, multisig.address, txAddress, true, false);
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: ImmutableTransactionAccount (The transaction account must be writable.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x9");
+  });
+
+  test("should not allow approval with mismatched multisig account", async () => {
+    const multisigA = await dsl.createMultisig(2, 3);
+    const multisigB = await dsl.createMultisig(2, 3);
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisigA.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+    const [txAddress, _txMeta] = await dsl.proposeTransaction(multisigA.owners[0], [transactionInstruction], multisigA.address);
+
+    // Approve using multisigB's address but a transaction that belongs to multisigA
+    const txResult = await dsl.approveTransaction(multisigB.owners[0], multisigB.address, txAddress);
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: InvalidTransactionAccount (The multisig of transaction account must match the provided multisig account.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xa");
+  });
+
   test("should not allow non owner to approve", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;

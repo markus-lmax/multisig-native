@@ -157,9 +157,12 @@ export class MultisigDsl {
 
   async approveTransaction(approver: Keypair,
                            multisig: PublicKey,
-                           transactionAddress: PublicKey): Promise<BanksTransactionResultWithMeta> {
-    let approve = createApproveTransactionInstruction(multisig, transactionAddress, approver.publicKey, this.programId);
-    return this.createAndProcessTx([approve], this.programTestContext.payer, [approver]);
+                           transactionAddress: PublicKey,
+                           approverIsSigner: boolean = true,
+                           transactionIsWritable: boolean = true): Promise<BanksTransactionResultWithMeta> {
+    let approve = createApproveTransactionInstruction(multisig, transactionAddress, approver.publicKey, this.programId, approverIsSigner, transactionIsWritable);
+    const additionalSigners = approverIsSigner ? [approver] : [];
+    return this.createAndProcessTx([approve], this.programTestContext.payer, additionalSigners);
   }
 
   createSetOwnersInstruction(multisig: MultisigAccount, newOwners: PublicKey[]): TransactionInstruction {

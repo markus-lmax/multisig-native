@@ -21,7 +21,7 @@ pub fn approve_transaction(
     )?;
 
 
-    validate(&multisig, &transaction)?;
+    validate(&multisig, &transaction, approver, transaction_account, multisig_account)?;
 
     let owner_index = assert_present(
         multisig.owners.iter().position(|a| a == approver.key),
@@ -36,14 +36,16 @@ pub fn approve_transaction(
 fn validate(
     multisig: &Multisig,
     transaction: &Transaction,
+    approver: &AccountInfo,
+    transaction_account: &AccountInfo,
+    multisig_account: &AccountInfo,
 ) -> ProgramResult {
     assert_that(
         multisig.owner_set_seqno == transaction.owner_set_seqno,
         MultisigError::InvalidOwnerSetSequenceNumber,
     )?;
-    // TODO add validations:
-    // - validate approver is signer
-    // - transaction is writable
-    // - transaction.multisig == multisig_account.key
+    assert_that(approver.is_signer, MultisigError::ApproverNotSigner)?;
+    assert_that(transaction_account.is_writable, MultisigError::ImmutableTransactionAccount)?;
+    assert_that(transaction.multisig == *multisig_account.key, MultisigError::InvalidTransactionAccount)?;
     Ok(())
 }

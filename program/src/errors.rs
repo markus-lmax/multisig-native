@@ -39,6 +39,8 @@ pub enum MultisigError {
     AccountCloseFailure,
     #[error("The given transaction account is missing or not in the expected format.")]
     MalformedTransactionAccount,
+    #[error("The approver must be a signer.")]
+    ApproverNotSigner,
 }
 
 impl From<MultisigError> for ProgramError {
