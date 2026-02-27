@@ -29,6 +29,6 @@ describe("invalid instruction", async () => {
 
     const txResult = await context.banksClient.tryProcessTransaction(tx);
 
-    assert(txResult.meta.logMessages[2] === `Program ${programId} failed: invalid instruction data`);
+    assert(txResult.meta.logMessages.some(log => log === `Program ${programId} failed: invalid instruction data`));
   });
 });

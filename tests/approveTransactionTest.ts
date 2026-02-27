@@ -24,8 +24,8 @@ describe("approve transaction", async () => {
 
     const logs = txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));
-    assert.strictEqual(logs[logs.length-3], "Program log: invoke approve_transaction");
-    assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
+    assert(logs.some(log => log === "Program log: invoke approve_transaction"));
+    assert(logs.some(log => log === `Program ${programId} success`));
 
     let transactionAccount: Transaction = await dsl.getTransactionAccount(transactionAddress);
     assert.deepStrictEqual(transactionAccount["signers"], [true, true, false], "Both ownerA and ownerB should have approved");

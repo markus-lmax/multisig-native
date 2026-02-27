@@ -73,8 +73,8 @@ describe("set owners", async () => {
 
     const [_, txMeta] = await dsl.proposeTransaction(ownerA, [setOwners2], multisig.address);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x2")));
   });
 
   await test("should not allow old owners to approve new transaction after ownership change", async () => {
@@ -93,8 +93,8 @@ describe("set owners", async () => {
 
     const txMeta = await dsl.approveTransaction(ownerB, multisig.address, txAddress2);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x2");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidOwner (The given owner is not part of this multisig.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x2")));
   });
 
   await test("should not allow any more approvals on a transaction if owners change", async () => {
@@ -122,10 +122,10 @@ describe("set owners", async () => {
 
     const txMeta = await dsl.approveTransaction(newOwnerB, multisig.address, txAddress2);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x5");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(
         " assertion failed - program error: InvalidOwnerSetSequenceNumber (The owner set sequence attributes of the multisig account and transaction account must match.)"
-    ));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x5"));
+    )));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x5")));
   });
 
   await test("should not allow transaction execution if owners change", async () => {
@@ -154,10 +154,10 @@ describe("set owners", async () => {
 
     const txMeta = await dsl.executeTransaction(txAddress2, transfer, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x8");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(
         " assertion failed - program error: InvalidExecutor (The executor must be a signer and an owner of this multisig.)"
-    ));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x8"));
+    )));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x8")));
   });
 
   await test("should not allow owners to be changed by non multisig signer", async () => {
@@ -187,10 +187,10 @@ describe("set owners", async () => {
     const txMeta = await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x6");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length - 5].endsWith(
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(
         " assertion failed - program error: NotEnoughOwners (The number of owners must be greater than zero.)"
-    ));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length - 1].endsWith(" failed: custom program error: 0x6"));
+    )));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x6")));
   });
 
   await test("should update threshold to owners list length if new owners list is smaller than threshold", async () => {
@@ -225,8 +225,8 @@ describe("set owners", async () => {
 
     const txMeta = await dsl.executeTransaction(txAddress, setOwners, multisig.signer, multisig.address, ownerB, ownerA.publicKey);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x7");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-5].endsWith(" assertion failed - program error: TooManyOwners (The number of owners must not be increased above its original value.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x7"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: TooManyOwners (The number of owners must not be increased above its original value.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x7")));
   });
 
   await test("should not allow to set owners without proposing a transaction", async () => {

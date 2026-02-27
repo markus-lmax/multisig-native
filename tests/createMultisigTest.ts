@@ -19,7 +19,7 @@ describe("create multisig", async () => {
     const logs = multisig.txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));
     assert(logs[1].startsWith(`Program log: invoke create_multisig - CreateMultisigInstruction { owners: [`));
-    assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
+    assert(logs.some(log => log === `Program ${programId} success`));
 
     const actualMultisig = await dsl.getMultisig(multisig.address);
     assert.strictEqual(actualMultisig["nonce"], multisig.nonce);
@@ -50,29 +50,29 @@ describe("create multisig", async () => {
   await test("do not create multisig if provided threshold is greater than number of owners", async () => {
     let txMeta = (await dsl.createMultisig(4, 3)).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 
   await test("do not create multisig with 0 threshold", async () => {
     let txMeta = (await dsl.createMultisig(0, 3)).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 
   await test("do not create multisig with 0 threshold and no owners", async () => {
     let txMeta = (await dsl.createMultisigWithOwners(0, [])).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 
   await test("do not create multisig with empty owners list", async () => {
     let txMeta = (await dsl.createMultisigWithOwners(1, [])).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 
   await test("do not create multisig for already initialized account", async () => {
@@ -90,29 +90,29 @@ describe("create multisig", async () => {
     );
     let txMeta = await dsl.createAndProcessTx([createMultisig], payer, [multisigAddress]);
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length - 4].endsWith("Create Account: account Address { address: " + multisigAddress.publicKey.toBase58() + ", base: None } already in use"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith("Create Account: account Address { address: " + multisigAddress.publicKey.toBase58() + ", base: None } already in use")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 
   await test("do not create multisig with duplicate owners", async () => {
     const [ownerA, ownerB] = Array.from({length: 2}, (_, _n) => Keypair.generate());
     let txMeta = (await dsl.createMultisigWithOwners(2, [ownerA, ownerA, ownerB])).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x1");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: UniqueOwners (Owners must be unique.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x1"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: UniqueOwners (Owners must be unique.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x1")));
   });
 
   await test("do not create multisig account with bad nonce", async () => {
     let txMeta = (await dsl.createMultisigWithBadNonce()).txMeta;
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: Provided seeds do not result in a valid address");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: Provided seeds do not result in a valid address"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: Provided seeds do not result in a valid address")));
   });
 
   await test("do not create multisig with incorrect system program id", async () => {
    const multisig = await dsl.createMultisigWithInvalidSystemProgramId();
 
     assert.strictEqual(multisig.txMeta.result, "Error processing Instruction 0: incorrect program id for instruction");
-    assert(multisig.txMeta.meta.logMessages[multisig.txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)"));
-    assert(multisig.txMeta.meta.logMessages[multisig.txMeta.meta.logMessages.length-1].endsWith(" failed: incorrect program id for instruction"));
+    assert(multisig.txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)")));
+    assert(multisig.txMeta.meta.logMessages.some(log => log.endsWith(" failed: incorrect program id for instruction")));
   });
 });

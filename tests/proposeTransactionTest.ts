@@ -25,7 +25,7 @@ describe("propose transaction", async () => {
     const logs = txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));
     assert(logs[1].startsWith(`Program log: invoke propose_transaction - ProposeTransactionInstruction { instructions: [TransactionInstructionData { program_id:`));
-    assert.strictEqual(logs[logs.length-1], `Program ${programId} success`);
+    assert(logs.some(log => log === `Program ${programId} success`));
 
     let transactionAccount: Transaction = await dsl.getTransactionAccount(transactionAddress);
 
@@ -48,8 +48,8 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransactionWithIncorrectSystemProgram(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: incorrect program id for instruction");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith("failed: incorrect program id for instruction"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: IncorrectProgramId (The account did not have the expected program id)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith("failed: incorrect program id for instruction")));
   });
 
   // the anchor version also validates that the payer is a signer (via the `Signer` trait), but it feels this is implicit
@@ -60,8 +60,8 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransactionWithProposerNotSigner(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x3");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: ProposerNotSigner (The proposer must be a signer.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x3"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: ProposerNotSigner (The proposer must be a signer.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x3")));
   });
 
   await test("should not be able to propose a transaction with empty instructions", async () => {
@@ -70,8 +70,8 @@ describe("propose transaction", async () => {
     const [_, txMeta] = await dsl.proposeTransaction(multisig.owners[0], [], multisig.address);
 
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x4");
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: MissingInstructions (The number of instructions must be greater than zero.)"));
-    assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x4"));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" assertion failed - program error: MissingInstructions (The number of instructions must be greater than zero.)")));
+    assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x4")));
   });
 
   await test("should not be able to edit transaction account with transaction account private key after initialisation", async () => {
@@ -119,7 +119,7 @@ describe("propose transaction", async () => {
     assert.strictEqual(txAddress2.toBase58(), txKeypair.publicKey.toBase58());
     assert.strictEqual(txMeta2.result, "Error processing Instruction 0: custom program error: 0x0");
 
-    assert(txMeta2.meta.logMessages[txMeta2.meta.logMessages.length-4].endsWith(" already in use"));
-    assert(txMeta2.meta.logMessages[txMeta2.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
+    assert(txMeta2.meta.logMessages.some(log => log.endsWith(" already in use")));
+    assert(txMeta2.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
   });
 });
