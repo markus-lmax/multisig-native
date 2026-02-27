@@ -8,7 +8,7 @@ describe("invalid instruction", async () => {
   const programId = PublicKey.unique();
   const context = await start([{ name: "multisig_native", programId: programId }], []);
 
-  test("reject invalid instruction data with appropriate ProgramError code", async () => {
+  await test("reject invalid instruction data with appropriate ProgramError code", async () => {
     const invalidCreateMultisig = new CreateMultisig({
       instructionDiscriminator: 255,
       owners: [],

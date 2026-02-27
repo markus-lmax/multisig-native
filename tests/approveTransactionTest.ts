@@ -10,7 +10,7 @@ describe("approve transaction", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("update signers list when an owner approves", async () => {
+  await test("update signers list when an owner approves", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     let transactionInstruction = SystemProgram.transfer({
@@ -31,7 +31,7 @@ describe("approve transaction", async () => {
     assert.deepStrictEqual(transactionAccount["signers"], [true, true, false], "Both ownerA and ownerB should have approved");
   });
 
-  test("should not perform instructions if not reached multisig approval threshold", async () => {
+  await test("should not perform instructions if not reached multisig approval threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     await dsl.assertBalance(multisig.signer, 1_000_000);
@@ -50,7 +50,7 @@ describe("approve transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
-  test("should approve idempotently", async () => {
+  await test("should approve idempotently", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     await dsl.assertBalance(multisig.signer, 1_000_000);
@@ -71,7 +71,7 @@ describe("approve transaction", async () => {
     await dsl.assertBalance(multisig.signer, 0);
   });
 
-  test("should not execute transaction if same user has approved multiple times to reach the threshold", async () => {
+  await test("should not execute transaction if same user has approved multiple times to reach the threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     await dsl.assertBalance(multisig.signer, 1_000_000);
@@ -93,7 +93,7 @@ describe("approve transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
-  test("should not allow non-signer to approve", async () => {
+  await test("should not allow non-signer to approve", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const transactionInstruction = SystemProgram.transfer({
@@ -109,7 +109,7 @@ describe("approve transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x10");
   });
 
-  test("should not allow approval with read-only transaction account", async () => {
+  await test("should not allow approval with read-only transaction account", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const transactionInstruction = SystemProgram.transfer({
@@ -125,7 +125,7 @@ describe("approve transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x9");
   });
 
-  test("should not allow approval with mismatched multisig account", async () => {
+  await test("should not allow approval with mismatched multisig account", async () => {
     const multisigA = await dsl.createMultisig(2, 3);
     const multisigB = await dsl.createMultisig(2, 3);
     const transactionInstruction = SystemProgram.transfer({
@@ -142,7 +142,7 @@ describe("approve transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xa");
   });
 
-  test("should not allow non owner to approve", async () => {
+  await test("should not allow non owner to approve", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;
     await dsl.assertBalance(multisig.signer, 1_000_000);

@@ -10,7 +10,7 @@ describe("set owners", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("should change owners of multisig and threshold", async () => {
+  await test("should change owners of multisig and threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -29,7 +29,7 @@ describe("set owners", async () => {
     assert.strictEqual(actualMultisig["owner_set_seqno"], 1);
   });
 
-  test("should not allow old owners to propose new transaction after ownership and threshold change", async () => {
+  await test("should not allow old owners to propose new transaction after ownership and threshold change", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -47,7 +47,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
   });
 
-  test("should not allow old owners to approve new transaction after ownership change", async () => {
+  await test("should not allow old owners to approve new transaction after ownership change", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -67,7 +67,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x2"));
   });
 
-  test("should not allow any more approvals on a transaction if owners and threshold change", async () => {
+  await test("should not allow any more approvals on a transaction if owners and threshold change", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -98,7 +98,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x5"));
   })
 
-  test("should not allow transaction execution if owners and threshold change", async () => {
+  await test("should not allow transaction execution if owners and threshold change", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -130,7 +130,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x8"));
   })
 
-  test("should not allow owners amd threshold to be changed by non multisig signer", async () => {
+  await test("should not allow owners amd threshold to be changed by non multisig signer", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
@@ -145,7 +145,7 @@ describe("set owners", async () => {
     assert.strictEqual(txMeta2.result, "Error processing Instruction 0: custom program error: 0x2");
   });
 
-  test("should not allow owners to be changed to empty list", async () => {
+  await test("should not allow owners to be changed to empty list", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const newOwners = [];
@@ -163,7 +163,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length - 1].endsWith(" failed: custom program error: 0x6"));
   })
 
-  test("should not allow threshold larger than owners list length", async () => {
+  await test("should not allow threshold larger than owners list length", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB] = [Keypair.generate(), Keypair.generate()];
@@ -178,7 +178,7 @@ describe("set owners", async () => {
     assert.ok(txMeta.meta.logMessages.includes("Program log: assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"))
   });
 
-  test("should not allow to set owners and change threshold without proposing a transaction", async () => {
+  await test("should not allow to set owners and change threshold without proposing a transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];
     const setOwnersAndChangeThreshold = dsl.createSetOwnersAndChangeThresholdInstruction(multisig, newOwners, 1);
@@ -191,7 +191,7 @@ describe("set owners", async () => {
     }
   });
 
-  test("should not allow owners and threshold to be changed without passing in correct multisig signer", async () => {
+  await test("should not allow owners and threshold to be changed without passing in correct multisig signer", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, ownerC] = multisig.owners;
     const newOwners = [Keypair.generate().publicKey, Keypair.generate().publicKey, Keypair.generate().publicKey];

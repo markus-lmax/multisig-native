@@ -10,7 +10,7 @@ describe("change threshold", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("should change threshold of multisig", async () => {
+  await test("should change threshold of multisig", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -26,7 +26,7 @@ describe("change threshold", async () => {
     assert.strictEqual(actualMultisig["owner_set_seqno"], 0);
   });
 
-  test("should require new threshold to be met", async () => {
+  await test("should require new threshold to be met", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, ownerC] = multisig.owners;
 
@@ -51,7 +51,7 @@ describe("change threshold", async () => {
     assert.strictEqual(actualMultisig["threshold"], 2);
   });
 
-  test("should update threshold for new transactions once executed", async () => {
+  await test("should update threshold for new transactions once executed", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -71,7 +71,7 @@ describe("change threshold", async () => {
     assert.strictEqual(updatedThreshold, 1);
   });
 
-  test("should use new threshold on an already existing transaction", async () => {
+  await test("should use new threshold on an already existing transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -96,7 +96,7 @@ describe("change threshold", async () => {
     assert.strictEqual(updatedThreshold2, 3);
   });
 
-  test("should not allow 0 threshold", async () => {
+  await test("should not allow 0 threshold", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -111,7 +111,7 @@ describe("change threshold", async () => {
     assert.strictEqual(actualThreshold, 2);
   });
 
-  test("should not allow threshold greater than number of owners", async () => {
+  await test("should not allow threshold greater than number of owners", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -126,7 +126,7 @@ describe("change threshold", async () => {
     assert.strictEqual(actualThreshold, 2);
   });
 
-  test("should not allow to change threshold without proposing a transaction", async () => {
+  await test("should not allow to change threshold without proposing a transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const changeThreshold = dsl.createChangeThresholdInstruction(multisig, 1);
 
@@ -138,7 +138,7 @@ describe("change threshold", async () => {
     }
   })
 
-  test("should not allow threshold to be changed without passing in correct multisig signer", async () => {
+  await test("should not allow threshold to be changed without passing in correct multisig signer", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, ownerC] = multisig.owners;
 

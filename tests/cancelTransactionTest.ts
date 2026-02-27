@@ -9,7 +9,7 @@ describe("cancel transaction", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("should let owner cancel transaction", async () => {
+  await test("should let owner cancel transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -30,7 +30,7 @@ describe("cancel transaction", async () => {
     assert.strictEqual(transactionAccountInfo, null);
   });
 
-  test("should let owner cancel transaction, even if the owner set has changed", async () => {
+  await test("should let owner cancel transaction, even if the owner set has changed", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -57,7 +57,7 @@ describe("cancel transaction", async () => {
     assert.strictEqual(transactionAccountInfo, null);
   });
 
-  test("should not let a non-owner cancel transaction", async () => {
+  await test("should not let a non-owner cancel transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;
     const ownerD = Keypair.generate();
@@ -77,7 +77,7 @@ describe("cancel transaction", async () => {
     assert.notEqual(transactionAccountInfo, null);
   })
 
-  test("should not execute transaction after cancel", async () => {
+  await test("should not execute transaction after cancel", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -97,7 +97,7 @@ describe("cancel transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
   });
 
-  test("should not approve transaction after cancel", async () => {
+  await test("should not approve transaction after cancel", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -116,7 +116,7 @@ describe("cancel transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
   });
 
-  test("should approve transaction after previous canceled", async () => {
+  await test("should approve transaction after previous canceled", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const recipient = Keypair.generate();

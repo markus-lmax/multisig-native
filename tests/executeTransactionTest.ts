@@ -10,7 +10,7 @@ describe("execute transaction", async () => {
   const context = await start([{ name: "multisig_native", programId: programId }], []);
   const dsl = new MultisigDsl(programId, context);
 
-  test("let proposer execute SOL transaction if multisig approval threshold reached", async () => {
+  await test("let proposer execute SOL transaction if multisig approval threshold reached", async () => {
     const multisig = await dsl.createMultisig(2, 3, 2_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -34,7 +34,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(recipient, 900_000);
   });
 
-  test("let proposer execute a SPL token transaction if multisig approval threshold reached using an ata", async () => {
+  await test("let proposer execute a SPL token transaction if multisig approval threshold reached using an ata", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -62,7 +62,7 @@ describe("execute transaction", async () => {
     await dsl.assertAtaBalance(destinationAta, 15);
   });
 
-  test("let proposer execute a transaction containing a SOL transfer and a SPL token transfer instruction", async () => {
+  await test("let proposer execute a transaction containing a SOL transfer and a SPL token transfer instruction", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -104,7 +104,7 @@ describe("execute transaction", async () => {
     await dsl.assertAtaBalance(multisigOwnedAta, 5);
   });
 
-  test("should not execute any instructions if one of the instructions fails", async () => {
+  await test("should not execute any instructions if one of the instructions fails", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -140,7 +140,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
-  test("let owner who has approved execute transaction if multisig approval threshold reached", async () => {
+  await test("let owner who has approved execute transaction if multisig approval threshold reached", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -159,7 +159,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 0);
   });
 
-  test("let owner who has not approved execute transaction if multisig approval threshold reached", async () => {
+  await test("let owner who has not approved execute transaction if multisig approval threshold reached", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, ownerC] = multisig.owners;
 
@@ -179,7 +179,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 0);
   });
 
-  test("close transaction account and refund rent exemption SOL on execute transaction", async () => {
+  await test("close transaction account and refund rent exemption SOL on execute transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -199,7 +199,7 @@ describe("execute transaction", async () => {
     assert.strictEqual(rawTxAccount, null);
   });
 
-  test("refund rent exemption SOL to any nominated account", async () => {
+  await test("refund rent exemption SOL to any nominated account", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const otherAccount = Keypair.generate();
@@ -219,7 +219,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(otherAccount.publicKey, 2_053_200);  // this is the rent exemption amount
   });
 
-  test("should not clear up transaction account if execute fails", async () => {
+  await test("should not clear up transaction account if execute fails", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -240,7 +240,7 @@ describe("execute transaction", async () => {
     }
   });
 
-  test("should not execute transaction twice", async () => {
+  await test("should not execute transaction twice", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -265,7 +265,7 @@ describe("execute transaction", async () => {
     assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
   });
 
-  test("should not let a non-owner execute transaction", async () => {
+  await test("should not let a non-owner execute transaction", async () => {
     const multisig = await dsl.createMultisig(2, 3, 1_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
     const ownerD = Keypair.generate();
@@ -288,7 +288,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
-  test("should handle multiple transactions in parallel", async () => {
+  await test("should handle multiple transactions in parallel", async () => {
     const multisig = await dsl.createMultisig(2, 3, 2_000_000);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -313,7 +313,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig.signer, 0);
   });
 
-  test("should transfer funds from two different multisig accounts", async () => {
+  await test("should transfer funds from two different multisig accounts", async () => {
     const [ownerA, ownerB, ownerC, ownerD] = Array.from({length: 4}, (_, _n) => Keypair.generate());
     const multisig1 = await dsl.createMultisigWithOwners(2, [ownerA, ownerB, ownerC], 1_000_000);
     const multisig2 = await dsl.createMultisigWithOwners(2, [ownerB, ownerC, ownerD], 1_100_000);
@@ -344,7 +344,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(multisig2.signer, 1_000_000);
   });
 
-  test("prevent burning funds by ensuring refundee is different from account being closed", async () => {
+  await test("prevent burning funds by ensuring refundee is different from account being closed", async () => {
     const multisig = await dsl.createMultisig(2, 2, 2_000_000);
     const [ownerA, ownerB] = multisig.owners;
 
