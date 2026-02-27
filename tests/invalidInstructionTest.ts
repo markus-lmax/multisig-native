@@ -23,7 +23,8 @@ describe("invalid instruction", async () => {
       data: invalidCreateMultisig.toBuffer(),
     });
     const tx = new Transaction().add(invalidInstruction);
-    tx.recentBlockhash = context.lastBlockhash;
+    const [latestBlockhash] = await context.banksClient.getLatestBlockhash();
+    tx.recentBlockhash = latestBlockhash;
     tx.sign(context.payer);
 
     const txResult = await context.banksClient.tryProcessTransaction(tx);
