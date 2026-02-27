@@ -14,7 +14,7 @@ describe("create multisig", async () => {
 
   await test("create multisig account", async () => {
     const multisig = await dsl.createMultisig(2, 3);
-    assert.strictEqual(multisig.txMeta.result, null);
+    assert.isNull(multisig.txMeta.result);
 
     const logs = multisig.txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));

@@ -20,7 +20,7 @@ describe("propose transaction", async () => {
     });
     const [transactionAddress, txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
 
-    assert.strictEqual(txMeta.result, null);
+    assert.isNull(txMeta.result);
 
     const logs = txMeta.meta.logMessages;
     assert(logs[0].startsWith(`Program ${programId}`));
@@ -74,6 +74,30 @@ describe("propose transaction", async () => {
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x4"));
   });
 
+  await test("should not be able to edit transaction account with transaction account private key after initialisation", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+
+    const transactionKeypair = Keypair.generate();
+    const [_, txMeta] = await dsl.proposeTransaction(multisig.owners[0], [transactionInstruction], multisig.address, transactionKeypair);
+    assert.isNull(txMeta.result);
+
+    // Try to transfer SOL from the transaction account using its private key
+    const stealInstruction = SystemProgram.transfer({
+      fromPubkey: transactionKeypair.publicKey,
+      lamports: 1,
+      toPubkey: context.payer.publicKey,
+    });
+    const stealResult = await dsl.createAndProcessTx([stealInstruction], context.payer, [transactionKeypair]);
+
+    assert.isNotNull(stealResult.result);
+    assert(stealResult.meta.logMessages.some(log => log.includes("`from` must not carry data")));
+  });
+
   await test("should not be able propose 2 transactions to the same transaction address", async () => {
     const multisig = await dsl.createMultisig(2, 3);
 
@@ -90,7 +114,7 @@ describe("propose transaction", async () => {
     const [txAddress2, txMeta2] = await dsl.proposeTransaction(multisig.owners[0], [transactionInstruction], multisig.address, txKeypair);
 
     assert.strictEqual(txAddress1.toBase58(), txKeypair.publicKey.toBase58());
-    assert.strictEqual(txMeta1.result, null);
+    assert.isNull(txMeta1.result);
 
     assert.strictEqual(txAddress2.toBase58(), txKeypair.publicKey.toBase58());
     assert.strictEqual(txMeta2.result, "Error processing Instruction 0: custom program error: 0x0");

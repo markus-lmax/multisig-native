@@ -29,7 +29,7 @@ describe("execute transaction", async () => {
 
     const txMeta = await dsl.executeTransaction(transactionAddress, solTransferInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
 
-    assert.strictEqual(txMeta.result, null);  // i.e. executeTransaction completed without error
+    assert.isNull(txMeta.result);  // i.e. executeTransaction completed without error
     await dsl.assertBalance(multisig.signer, 1_100_000);
     await dsl.assertBalance(recipient, 900_000);
   });

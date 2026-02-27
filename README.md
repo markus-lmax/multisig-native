@@ -8,7 +8,6 @@
 
 # TODOs
 
-- port over test "should not be able to edit transaction account with transaction account private key after initialisation"
 - some methods currently only pass in the multisig, not the multisig_signer as well - need to add the latter in order to re-implement the following anchor constraint
   (extract relevant code from create_multisig into common.rs?): 
 ```
