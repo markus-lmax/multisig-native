@@ -49,8 +49,6 @@ describe("create multisig", async () => {
 
   await test("do not create multisig if provided threshold is greater than number of owners", async () => {
     let txMeta = (await dsl.createMultisig(4, 3)).txMeta;
-    // TODO proper error code/message for InvalidThreshold only appear in manually added solana logs ATM (see assert_that in errors.rs)
-    //      -> is there a way to retain the anchor behaviour (custom error message appearing in the exception)
     assert.strictEqual(txMeta.result, "Error processing Instruction 0: custom program error: 0x0");
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-3].endsWith(" assertion failed - program error: InvalidThreshold (Threshold must be less than or equal to the number of owners and greater than zero.)"));
     assert(txMeta.meta.logMessages[txMeta.meta.logMessages.length-1].endsWith(" failed: custom program error: 0x0"));
