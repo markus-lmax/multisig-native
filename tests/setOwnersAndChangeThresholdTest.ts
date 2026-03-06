@@ -130,7 +130,7 @@ describe("set owners", async () => {
     assert(txMeta.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x8")));
   })
 
-  await test("should not allow owners amd threshold to be changed by non multisig signer", async () => {
+  await test("should not allow owners and threshold to be changed by non multisig signer", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, _ownerB, _ownerC] = multisig.owners;
     const [newOwnerA, newOwnerB, newOwnerC] = [Keypair.generate(), Keypair.generate(), Keypair.generate()];
