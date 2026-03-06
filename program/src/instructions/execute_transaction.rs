@@ -1,5 +1,5 @@
 use crate::errors::{assert_success, assert_that, MultisigError};
-use crate::instructions::common::{close_account, validate_signer};
+use crate::instructions::common::{close_account, validate_pda};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use borsh::BorshDeserialize;
@@ -67,7 +67,7 @@ where
     assert_that(executor.is_signer && multisig.owners.contains(executor.key), MultisigError::InvalidExecutor)?;
     assert_that(multisig.owner_set_seqno == transaction.owner_set_seqno, MultisigError::InvalidOwnerSetSequenceNumber)?;
 
-    validate_signer(multisig_signer, multisig_account, &multisig, multisig_account.owner)?;
+    validate_pda(multisig_signer, multisig_account, multisig.nonce, multisig_account.owner)?;
 
     assert_that(transaction_account.is_writable, MultisigError::ImmutableTransactionAccount)?;
     assert_that(transaction.multisig == *multisig_account.key, MultisigError::InvalidTransactionAccount)?;

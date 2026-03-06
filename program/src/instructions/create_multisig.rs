@@ -1,4 +1,5 @@
 use crate::errors::{assert_that, assert_unique_owners, MultisigError};
+use crate::instructions::common::validate_pda;
 use crate::state::multisig::Multisig;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::account_info::next_account_info;
@@ -67,14 +68,6 @@ fn validate(
         instruction.threshold > 0 && instruction.threshold <= instruction.owners.len() as u8,
         MultisigError::InvalidThreshold,
     )?;
-    let pda_address = Pubkey::create_program_address(
-        &[multisig.key.as_ref(), &[instruction.nonce][..]],
-        &program_id,
-    )
-    .map_err(|err| {
-        msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig.key, instruction.nonce, err);
-        ProgramError::InvalidSeeds
-    })?;
-    assert_that(multisig_signer.key.as_ref() == pda_address.as_ref(), ProgramError::InvalidSeeds)?;
+    validate_pda(multisig_signer, multisig, instruction.nonce, program_id)?;
     Ok(())
 }

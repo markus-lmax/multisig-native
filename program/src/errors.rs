@@ -41,6 +41,8 @@ pub enum MultisigError {
     MalformedTransactionAccount,
     #[error("The approver must be a signer.")]
     ApproverNotSigner,
+    #[error("The multisig signer must be a signer.")]
+    MultisigSignerNotSigner,
 }
 
 impl From<MultisigError> for ProgramError {

@@ -40,15 +40,22 @@ pub fn execute_set_owners(multisig_account: &&AccountInfo, multisig_data: &mut M
     Ok(())
 }
 
-pub fn validate_signer(multisig_signer: &AccountInfo, multisig_account: &AccountInfo, multisig: &Multisig, program_id: &Pubkey) -> ProgramResult {
+pub fn validate_pda(multisig_signer: &AccountInfo, multisig_account: &AccountInfo, nonce: u8, program_id: &Pubkey) -> ProgramResult {
     let pda_address = Pubkey::create_program_address(
-        &[multisig_account.key.as_ref(), &[multisig.nonce][..]],
+        &[multisig_account.key.as_ref(), &[nonce][..]],
         &program_id,
     ).map_err(|err| {
-        msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig_account.key, multisig.nonce, err);
+        msg!("could not derive pda address from multisig {} and nonce {}: {}", multisig_account.key, nonce, err);
         ProgramError::InvalidSeeds
     })?;
     assert_that(multisig_signer.key.as_ref() == pda_address.as_ref(), ProgramError::InvalidSeeds)?;
+
+    Ok(())
+}
+
+pub fn validate_signer(multisig_signer: &AccountInfo, multisig_account: &AccountInfo, multisig: &Multisig, program_id: &Pubkey) -> ProgramResult {
+    validate_pda(multisig_signer, multisig_account, multisig.nonce, program_id)?;
+    assert_that(multisig_signer.is_signer, MultisigError::MultisigSignerNotSigner)?;
 
     Ok(())
 }
