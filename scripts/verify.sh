@@ -25,7 +25,7 @@ fi
 
 # 1. Build the local source code verifiably.
 echo "--- Building local source code... ---"
-./build-verifiable.sh
+./scripts/build-verifiable.sh
 echo "Local build complete."
 
 # 2. Dump the on-chain program.
