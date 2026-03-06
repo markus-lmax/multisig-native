@@ -18,6 +18,8 @@ security_txt! {
     auditors: "none (yet)"
 }
 
+// TODO copied from multisig, would need its own address before deployment (the `solana program deploy` CLI and the BPF loader
+//   use the ID symbol emitted from this macro to verify that the program being deployed matches the expected address)
 declare_id!("LMAXm1DhfBg1YMvi79gXdPfsJpYuJb9urGkGNa12hvJ");
 
 entrypoint!(process_instruction);
