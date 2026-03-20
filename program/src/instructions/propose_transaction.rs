@@ -1,4 +1,5 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use shank::ShankType;
 use solana_program::account_info::next_account_info;
 use solana_program::program::invoke;
 use solana_program::program_error::ProgramError;
@@ -12,7 +13,7 @@ use crate::errors::{assert_present, assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, ShankType)]
 pub struct TransactionInstructionAccount {
     pub pubkey: Pubkey,
     pub is_signer: bool,
@@ -27,7 +28,7 @@ impl From<&TransactionInstructionAccount> for AccountMeta {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
+#[derive(BorshSerialize, BorshDeserialize, Debug, Clone, ShankType)]
 pub struct TransactionInstructionData {
     pub program_id: Pubkey,
     pub accounts: Vec<TransactionInstructionAccount>,

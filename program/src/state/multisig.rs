@@ -1,7 +1,8 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use shank::ShankAccount;
 use solana_program::pubkey::{Pubkey, PUBKEY_BYTES};
 
-#[derive(BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, ShankAccount)]
 pub struct Multisig {
     pub owners: Vec<Pubkey>,
     pub threshold: u8,

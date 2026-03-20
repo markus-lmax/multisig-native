@@ -79,6 +79,6 @@ pnpm verify <PROGRAM_ID>
 ```
 
 ## TODOs
-- publish idl using Shank (see https://github.com/solana-developers/program-examples/tree/main/tools/shank-and-solita/native)
+- update toolchain (`agave-install update`) and Solana to latest versions, then remove Cargo.toml hacks introduced in the current commit
 - why was threshold of type u64 in the anchor impl? (changed to u8 for now, avoids having to use BN on the TS/test side)
 - (low prio): update borsh (ts) to latest (needs adapting of schema defs)

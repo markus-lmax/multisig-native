@@ -1,8 +1,9 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use shank::ShankAccount;
 use solana_program::pubkey::Pubkey;
 use crate::instructions::propose_transaction::TransactionInstructionData;
 
-#[derive(BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, ShankAccount)]
 pub struct Transaction {
     // The multisig account this transaction belongs to.
     pub multisig: Pubkey,
