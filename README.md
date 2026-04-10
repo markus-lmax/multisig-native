@@ -78,6 +78,3 @@ solana program deploy ./program/target/so/multisig_native.so
 pnpm verify <PROGRAM_ID>
 ```
 
-## TODOs
-- why was threshold of type u64 in the anchor impl? (changed to u8 for now, avoids having to use BN on the TS/test side)
-- (low prio): update borsh (ts) to latest (needs adapting of schema defs)
