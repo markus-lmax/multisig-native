@@ -20,6 +20,9 @@ RUN npm install -g pnpm@10.27.0
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.92.0
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+# Install shank-cli (IDL generator)
+RUN cargo install shank-cli@0.4.8
+
 # Install Solana v1.18.26
 RUN sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.26/install)"
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
