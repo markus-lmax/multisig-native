@@ -66,7 +66,7 @@ and compares their SHA-256 hashes to confirm the deployed program matches the lo
 
 Both scripts live in `scripts/` and require Docker to be installed.
 
-For local testing, you can spin up a local validator with solana-test-validator, deploy to it, then verify:                                                                                                                                                                                                                      █
+For local testing, you can spin up a local validator with solana-test-validator, deploy to it, then verify:
 ```
 # Terminal 1:
 solana-test-validator
@@ -77,4 +77,3 @@ solana program deploy ./program/target/so/multisig_native.so
 # note the printed program ID, then:
 pnpm verify <PROGRAM_ID>
 ```
-
