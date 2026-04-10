@@ -23,8 +23,8 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Install shank-cli (IDL generator)
 RUN cargo install shank-cli@0.4.8
 
-# Install Solana v1.18.26
-RUN sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.26/install)"
+# Install Agave v2.2.20
+RUN sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.20/install)"
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
 
 # Verify the installed versions

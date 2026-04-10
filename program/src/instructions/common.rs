@@ -2,7 +2,8 @@ use borsh::BorshSerialize;
 use solana_program::account_info::AccountInfo;
 use solana_program::entrypoint::ProgramResult;
 use solana_program::pubkey::{Pubkey, PUBKEY_BYTES};
-use solana_program::{msg, system_program};
+use solana_program::{msg};
+use solana_sdk_ids::system_program;
 use solana_program::program_error::ProgramError;
 use crate::errors::{assert_that, assert_unique_owners, MultisigError};
 use crate::state::multisig::Multisig;
@@ -13,7 +14,7 @@ pub fn close_account(account: &AccountInfo, refundee: &AccountInfo) -> ProgramRe
     **refundee.lamports.borrow_mut() = refundee.lamports()
         .checked_add(lamports)
         .ok_or(MultisigError::AccountCloseFailure)?;
-    account.realloc(0, false)?;
+    account.resize(0)?;
     account.assign(&system_program::ID);
 
     Ok(())
