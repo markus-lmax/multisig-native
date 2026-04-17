@@ -73,7 +73,7 @@ pub fn propose_transaction(
 
     validate(proposer, system_program, &instruction)?;
 
-    let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
+    let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let owner_index = assert_present(
         multisig.owners.iter().position(|a| a == proposer.key),
         MultisigError::InvalidOwner

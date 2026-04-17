@@ -43,6 +43,8 @@ pub enum MultisigError {
     ApproverNotSigner,
     #[error("The multisig signer must be a signer.")]
     MultisigSignerNotSigner,
+    #[error("The given multisig account is missing or not in the expected format.")]
+    MalformedMultisigAccount,
 }
 
 impl From<MultisigError> for ProgramError {

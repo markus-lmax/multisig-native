@@ -22,7 +22,7 @@ pub fn change_threshold(
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
     let multisig_signer = next_account_info(accounts_iter)?;
-    let mut multisig_data = Multisig::try_from_slice(&multisig_account.data.borrow_mut())?;
+    let mut multisig_data = Multisig::checked_deserialize(&multisig_account.data.borrow_mut())?;
 
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
     validate_threshold(instruction.threshold, &multisig_data.owners)?;

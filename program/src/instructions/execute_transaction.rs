@@ -1,8 +1,7 @@
-use crate::errors::{assert_success, assert_that, MultisigError};
+use crate::errors::{assert_that, MultisigError};
 use crate::instructions::common::{close_account, validate_pda};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
-use borsh::BorshDeserialize;
 use solana_program::account_info::next_account_info;
 use solana_program::instruction::Instruction;
 use solana_program::program_error::ProgramError;
@@ -59,11 +58,8 @@ where
     let refundee = next_account_info(accounts_iter)?;
     let executor = next_account_info(accounts_iter)?;
 
-    let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
-    let transaction = assert_success(
-        Transaction::try_from_slice(&transaction_account.data.borrow()),
-        MultisigError::MalformedTransactionAccount,
-    )?;
+    let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
+    let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;
     assert_that(executor.is_signer && multisig.owners.contains(executor.key), MultisigError::InvalidExecutor)?;
     assert_that(multisig.owner_set_seqno == transaction.owner_set_seqno, MultisigError::InvalidOwnerSetSequenceNumber)?;
 

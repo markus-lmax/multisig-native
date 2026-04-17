@@ -1,7 +1,7 @@
-use crate::errors::{assert_present, assert_success, assert_that, MultisigError};
+use crate::errors::{assert_present, assert_that, MultisigError};
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshSerialize;
 use solana_program::account_info::next_account_info;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
@@ -14,11 +14,8 @@ pub fn approve_transaction(
     let transaction_account = next_account_info(accounts_iter)?;
     let approver = next_account_info(accounts_iter)?;
 
-    let multisig = Multisig::try_from_slice(&multisig_account.data.borrow())?;
-    let mut transaction = assert_success(
-        Transaction::try_from_slice(&transaction_account.data.borrow()),
-        MultisigError::MalformedTransactionAccount
-    )?;
+    let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
+    let mut transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;
 
 
     validate(&multisig, &transaction, approver, transaction_account, multisig_account)?;

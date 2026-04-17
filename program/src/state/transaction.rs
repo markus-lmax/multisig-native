@@ -1,6 +1,8 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use shank::ShankAccount;
 use solana_program::pubkey::Pubkey;
+use solana_program::program_error::ProgramError;
+use crate::errors::{assert_success, MultisigError};
 use crate::instructions::propose_transaction::TransactionInstructionData;
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, ShankAccount)]
@@ -16,6 +18,13 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    pub fn checked_deserialize(data: &[u8]) -> Result<Self, ProgramError> {
+        assert_success(
+            Self::try_from_slice(data),
+            MultisigError::MalformedTransactionAccount,
+        )
+    }
+
     pub fn len(&self) -> usize {
         32 +                                                           // multisig
         4 + self.instructions.iter().map(|instr| instr.len()).sum::<usize>() +  // instructions
