@@ -14,18 +14,21 @@ pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
     let refundee = next_account_info(accounts_iter)?;
     let executor = next_account_info(accounts_iter)?;
 
-    validate(multisig_account, transaction_account, executor)?;
+    validate(multisig_account, transaction_account, refundee, executor)?;
 
     close_account(transaction_account, refundee)
 }
 
-fn validate(multisig_account: &AccountInfo, transaction_account: &AccountInfo, executor: &AccountInfo) -> ProgramResult {
+fn validate(multisig_account: &AccountInfo, transaction_account: &AccountInfo, refundee: &AccountInfo, executor: &AccountInfo) -> ProgramResult {
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;
 
     assert_that(executor.is_signer && multisig.owners.contains(executor.key), MultisigError::InvalidExecutor)?;
     assert_that(multisig.owner_set_seqno >= transaction.owner_set_seqno, MultisigError::InvalidOwnerSetSequenceNumber)?;
     assert_that(transaction.multisig == *multisig_account.key, MultisigError::InvalidTransactionAccount)?;
+    assert_that(transaction_account.is_writable, MultisigError::ImmutableTransactionAccount)?;
+    assert_that(refundee.key != transaction_account.key, MultisigError::InvalidRefundeeAccount)?;
+    assert_that(refundee.is_writable, MultisigError::ImmutableRefundeeAccount)?;
 
     Ok(())
 }

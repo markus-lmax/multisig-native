@@ -136,4 +136,29 @@ describe("cancel transaction", async () => {
 
     await dsl.assertBalance(recipient.publicKey, 1_000_000);
   })
+
+  await test("prevent burning funds by ensuring refundee is different from account being closed", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: multisig.signer,
+      lamports: 1_000_000,
+      toPubkey: context.payer.publicKey,
+    });
+    const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [transactionInstruction], multisig.address);
+
+    const txResult = await dsl.cancelTransaction(
+        transactionAddress,
+        multisig.address,
+        ownerB,
+        transactionAddress // refundee is the account being closed
+    );
+
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: InvalidRefundeeAccount (The refundee account must not be the same as the transaction account.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xb");
+
+    const transactionAccountInfo = await dsl.programTestContext.banksClient.getAccount(transactionAddress, "confirmed");
+    assert.notEqual(transactionAccountInfo, null, "Transaction account should not have been closed on error.");
+  });
 });
