@@ -34,7 +34,7 @@ describe("execute transaction", async () => {
     await dsl.assertBalance(recipient, 900_000);
   });
 
-  await test("let proposer execute a SPL token transaction if multisig approval threshold reached using an ata", async () => {
+  await test("let proposer execute a SPL token transaction if multisig approval threshold reached", async () => {
     const multisig = await dsl.createMultisig(2, 3);
     const [ownerA, ownerB, _ownerC] = multisig.owners;
 
@@ -50,16 +50,16 @@ describe("execute transaction", async () => {
         3                  // decimals
     );
 
-    await dsl.assertAtaBalance(multisigOwnedAta, 20);
-    await dsl.assertAtaBalance(destinationAta, 0);
+    await dsl.assertTokenAccountBalance(multisigOwnedAta, 20);
+    await dsl.assertTokenAccountBalance(destinationAta, 0);
 
     const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [tokenTransferInstruction], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
 
     await dsl.executeTransaction(transactionAddress, tokenTransferInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
 
-    await dsl.assertAtaBalance(multisigOwnedAta, 5);
-    await dsl.assertAtaBalance(destinationAta, 15);
+    await dsl.assertTokenAccountBalance(multisigOwnedAta, 5);
+    await dsl.assertTokenAccountBalance(destinationAta, 15);
   });
 
   await test("let proposer execute a transaction containing a SOL transfer and a SPL token transfer instruction", async () => {
@@ -86,7 +86,7 @@ describe("execute transaction", async () => {
     );
 
     await dsl.assertBalance(multisig.signer, 1_000_000);
-    await dsl.assertAtaBalance(multisigOwnedAta, 20);
+    await dsl.assertTokenAccountBalance(multisigOwnedAta, 20);
 
     const [transactionAddress, _txMeta] = await dsl.proposeTransaction(ownerA, [solTransferInstruction, tokenTransferInstruction], multisig.address);
     await dsl.approveTransaction(ownerB, multisig.address, transactionAddress);
@@ -101,7 +101,7 @@ describe("execute transaction", async () => {
     );
 
     await dsl.assertBalance(multisig.signer, 950_000);
-    await dsl.assertAtaBalance(multisigOwnedAta, 5);
+    await dsl.assertTokenAccountBalance(multisigOwnedAta, 5);
   });
 
   await test("should not execute any instructions if one of the instructions fails", async () => {

@@ -194,7 +194,7 @@ export class MultisigDsl {
     assert.strictEqual(actualBalance, BigInt(expectedBalance));
   }
 
-  async assertAtaBalance(address: PublicKey, expectedBalance: number) {
+  async assertTokenAccountBalance(address: PublicKey, expectedBalance: number) {
     const accountInfo = await this.programTestContext.banksClient.getAccount(address);
     const tokenAccountInfo = AccountLayout.decode(accountInfo.data);
     assert.strictEqual(tokenAccountInfo.amount, BigInt(expectedBalance));
@@ -297,6 +297,34 @@ export class MultisigDsl {
     this.programTestContext.setAccount(ata, ataAccountInfo);
 
     return ata;
+  }
+
+  async createTokenAccount(mint: TokenMint, owner: PublicKey, initialBalance: number = 0): Promise<PublicKey> {
+    const tokenAccData = Buffer.alloc(ACCOUNT_SIZE);
+    AccountLayout.encode(
+        {
+          mint: mint.account,
+          owner,
+          amount: BigInt(initialBalance),
+          delegateOption: 0,
+          delegate: PublicKey.default,
+          delegatedAmount: BigInt(0),
+          state: 1,
+          isNativeOption: 0,
+          isNative: BigInt(0),
+          closeAuthorityOption: 0,
+          closeAuthority: PublicKey.default,
+        },
+        tokenAccData,
+    );
+    const address = Keypair.generate().publicKey;
+    this.programTestContext.setAccount(address, {
+      lamports: 1_000_000_000,
+      data: tokenAccData,
+      owner: TOKEN_PROGRAM_ID,
+      executable: false,
+    });
+    return address;
   }
 
   async createAndProcessTx(instructions: TransactionInstruction[], payer: Keypair, additionalSigners: Keypair[] = []): Promise<BanksTransactionResultWithMeta> {
