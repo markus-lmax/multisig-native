@@ -59,6 +59,7 @@ where
     let executor = next_account_info(accounts_iter)?;
 
     assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
+    assert_that(*program_id == *transaction_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
 
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;

@@ -96,8 +96,8 @@ describe("cancel transaction", async () => {
 
     const txResult = await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
 
-    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: MalformedTransactionAccount (The given transaction account is missing or not in the expected format.)"));
-    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: AccountOwnedByWrongProgram (The given account is owned by a different program than expected.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x13");
   });
 
   await test("should not approve transaction after cancel", async () => {
@@ -206,6 +206,39 @@ describe("cancel transaction", async () => {
     assert.ok(
         txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
         "expected cancel_transaction to log AccountOwnedByWrongProgram",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected cancel_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
+  });
+
+  await test("should reject a Transaction account not owned by the program", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [ownerA, ownerB, _ownerC] = multisig.owners;
+
+    const fakeTxAddress = Keypair.generate().publicKey;
+    const fakeTxData = Buffer.from(
+        borsh.serialize(TransactionSchema, {
+          multisig: multisig.address.toBytes(),
+          instructions: [],
+          signers: [true, false, false],
+          owner_set_seqno: 0,
+        }),
+    );
+    context.setAccount(fakeTxAddress, {
+      lamports: 1_000_000_000,
+      data: fakeTxData,
+      owner: SystemProgram.programId, // wrong owner: should be `programId`
+      executable: false,
+    });
+
+    const txMeta = await dsl.cancelTransaction(fakeTxAddress, multisig.address, ownerB, ownerA.publicKey);
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected cancel_transaction to log AccountOwnedByWrongProgram for transaction account",
     );
     assert.strictEqual(
         txMeta.result,

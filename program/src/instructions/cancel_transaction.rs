@@ -28,6 +28,7 @@ fn validate(
     executor: &AccountInfo,
 ) -> ProgramResult {
     assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
+    assert_that(*program_id == *transaction_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
 
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;

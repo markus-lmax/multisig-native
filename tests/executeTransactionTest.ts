@@ -264,8 +264,8 @@ describe("execute transaction", async () => {
     const txResult = await dsl.executeTransaction(transactionAddress, transactionInstruction, multisig.signer, multisig.address, ownerA, ownerA.publicKey);
     await dsl.assertBalance(multisig.signer, 990_000);
 
-    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: MalformedTransactionAccount (The given transaction account is missing or not in the expected format.)"));
-    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0xf");
+    assert.ok(txResult.meta.logMessages.includes("Program log: assertion failed - program error: AccountOwnedByWrongProgram (The given account is owned by a different program than expected.)"));
+    assert.strictEqual(txResult.result, "Error processing Instruction 0: custom program error: 0x13");
   });
 
   await test("should not let a non-owner execute transaction", async () => {
@@ -438,4 +438,44 @@ describe("execute transaction", async () => {
     );
   });
 
+  await test("should reject a Transaction account not owned by the program", async () => {
+    const multisig = await dsl.createMultisig(1, 1);
+    const [owner] = multisig.owners;
+
+    const fakeTxAddress = Keypair.generate().publicKey;
+    const fakeTxData = Buffer.from(
+        borsh.serialize(TransactionSchema, {
+          multisig: multisig.address.toBytes(),
+          instructions: [],
+          signers: [true],
+          owner_set_seqno: 0,
+        }),
+    );
+    context.setAccount(fakeTxAddress, {
+      lamports: 1_000_000_000,
+      data: fakeTxData,
+      owner: SystemProgram.programId, // wrong owner: should be `programId`
+      executable: false,
+    });
+
+    const refundee = Keypair.generate().publicKey;
+    const txMeta = await dsl.executeTransactionWithMultipleInstructions(
+        fakeTxAddress,
+        [],
+        multisig.signer,
+        multisig.address,
+        owner,
+        refundee,
+    );
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected execute_transaction to log AccountOwnedByWrongProgram for transaction account",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected execute_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
+  });
 });

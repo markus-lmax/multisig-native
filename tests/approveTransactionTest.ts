@@ -216,4 +216,37 @@ describe("approve transaction", async () => {
         "expected approve_transaction to reject with AccountOwnedByWrongProgram (0x13)",
     );
   })
+
+  await test("should reject a Transaction account not owned by the program", async () => {
+    const multisig = await dsl.createMultisig(2, 3);
+    const [_, ownerB, _ownerC] = multisig.owners;
+
+    const fakeTxAddress = Keypair.generate().publicKey;
+    const fakeTxData = Buffer.from(
+        borsh.serialize(TransactionSchema, {
+          multisig: multisig.address.toBytes(),
+          instructions: [],
+          signers: [true, false, false],
+          owner_set_seqno: 0,
+        }),
+    );
+    context.setAccount(fakeTxAddress, {
+      lamports: 1_000_000_000,
+      data: fakeTxData,
+      owner: SystemProgram.programId, // wrong owner: should be `programId`
+      executable: false,
+    });
+
+    const txMeta = await dsl.approveTransaction(ownerB, multisig.address, fakeTxAddress);
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected approve_transaction to log AccountOwnedByWrongProgram for transaction account",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected approve_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
+  })
 });
