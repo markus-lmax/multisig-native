@@ -1,9 +1,12 @@
 import {describe, test} from "node:test";
 import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
-import {MultisigDsl} from "../ts";
+import {MultisigDsl, MultisigSchema} from "../ts";
 import {assert} from "chai";
 import {createTransferCheckedInstruction} from "@solana/spl-token";
+import {Buffer} from "node:buffer";
+import * as borsh from "borsh";
+import {TransactionSchema} from "../ts/state/transaction";
 
 describe("execute transaction", async () => {
   const programId = PublicKey.unique();
@@ -371,4 +374,68 @@ describe("execute transaction", async () => {
     const transactionAccountInfo = await dsl.programTestContext.banksClient.getAccount(transactionAddress, "confirmed");
     assert.notEqual(transactionAccountInfo, null, "Transaction account should not have been closed on error.");
   });
+
+  await test("should reject a Multisig account not owned by the program", async () => {
+    const attacker = Keypair.generate();
+    const fakeMultisigAddress = Keypair.generate().publicKey;
+    const [multisigSigner, nonce] = PublicKey.findProgramAddressSync(
+        [fakeMultisigAddress.toBuffer()],
+        SystemProgram.programId,  // Intentionally wrong program
+    );
+
+    const fakeMultisigData = Buffer.from(
+        borsh.serialize(MultisigSchema, {
+          owners: [attacker.publicKey.toBytes()],
+          threshold: 1,
+          nonce: nonce,
+          owner_set_seqno: 0,
+          padding: [],
+        }),
+    );
+    context.setAccount(fakeMultisigAddress, {
+      lamports: 1_000_000_000,
+      data: fakeMultisigData,
+      owner: SystemProgram.programId, // <-- wrong owner
+      executable: false,
+    });
+
+    // Forge a matching Transaction account with a single approval (enough to  satisfy threshold = 1) and zero
+    // inner instructions (so `invoke_signed` is a no-op and `close_account` succeeds, isolating the validation gap).
+    const fakeTxAddress = Keypair.generate().publicKey;
+    const fakeTxData = Buffer.from(
+        borsh.serialize(TransactionSchema, {
+          multisig: fakeMultisigAddress.toBytes(),
+          instructions: [],
+          signers: [true],
+          owner_set_seqno: 0,
+        }),
+    );
+    context.setAccount(fakeTxAddress, {
+      lamports: 1_000_000_000,
+      data: fakeTxData,
+      owner: programId,
+      executable: false,
+    });
+
+    const refundee = Keypair.generate().publicKey;
+    const txMeta = await dsl.executeTransactionWithMultipleInstructions(
+        fakeTxAddress,
+        [],
+        multisigSigner,
+        fakeMultisigAddress,
+        attacker,
+        refundee,
+    );
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected execute_transaction to log AccountOwnedByWrongProgram",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected execute_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
+  });
+
 });

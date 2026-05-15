@@ -3,9 +3,10 @@ use crate::instructions::common::close_account;
 use crate::state::multisig::Multisig;
 use crate::state::transaction::Transaction;
 use solana_program::account_info::next_account_info;
+use solana_program::pubkey::Pubkey;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
-pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
+pub fn cancel_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     msg!("invoke cancel_transaction");
 
     let accounts_iter = &mut accounts.iter();
@@ -14,12 +15,20 @@ pub fn cancel_transaction(accounts: &[AccountInfo]) -> ProgramResult {
     let refundee = next_account_info(accounts_iter)?;
     let executor = next_account_info(accounts_iter)?;
 
-    validate(multisig_account, transaction_account, refundee, executor)?;
+    validate(program_id, multisig_account, transaction_account, refundee, executor)?;
 
     close_account(transaction_account, refundee)
 }
 
-fn validate(multisig_account: &AccountInfo, transaction_account: &AccountInfo, refundee: &AccountInfo, executor: &AccountInfo) -> ProgramResult {
+fn validate(
+    program_id: &Pubkey,
+    multisig_account: &AccountInfo,
+    transaction_account: &AccountInfo,
+    refundee: &AccountInfo,
+    executor: &AccountInfo,
+) -> ProgramResult {
+    assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
+
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;
 
@@ -32,4 +41,3 @@ fn validate(multisig_account: &AccountInfo, transaction_account: &AccountInfo, r
 
     Ok(())
 }
-

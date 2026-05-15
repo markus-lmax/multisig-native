@@ -8,13 +8,14 @@ export class Multisig extends Assignable {
   }
 }
 
-const MultisigSchema =
+export const MultisigSchema =
   {
     struct: {
       owners: {array: {type: {array: {type: "u8", len: 32}}}},
       threshold: "u8",
       nonce: "u8",
-      owner_set_seqno: "u32"
+      owner_set_seqno: "u32",
+      padding: {array: {type: "u8"}},
     }
   };
 

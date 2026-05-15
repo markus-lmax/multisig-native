@@ -1,18 +1,18 @@
+use crate::errors::{assert_present, assert_that, MultisigError};
+use crate::state::multisig::Multisig;
+use crate::state::transaction::Transaction;
 use borsh::{BorshDeserialize, BorshSerialize};
 use shank::ShankType;
 use solana_program::account_info::next_account_info;
+use solana_program::instruction::{AccountMeta, Instruction};
 use solana_program::program::invoke;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::rent::Rent;
 use solana_program::sysvar::Sysvar;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
-use solana_program::instruction::{AccountMeta, Instruction};
 use solana_sdk_ids::system_program;
 use solana_system_interface::instruction as system_instruction;
-use crate::errors::{assert_present, assert_that, MultisigError};
-use crate::state::multisig::Multisig;
-use crate::state::transaction::Transaction;
 
 #[derive(BorshSerialize, BorshDeserialize, Debug, Clone, ShankType)]
 pub struct TransactionInstructionAccount {
@@ -41,7 +41,6 @@ impl TransactionInstructionData {
             4 + (32 + 1 + 1) * self.accounts.len() +  // accounts
             4 + self.data.len()                       // data
     }
-
 }
 impl From<&TransactionInstructionData> for Instruction {
     fn from(ix: &TransactionInstructionData) -> Instruction {
@@ -71,12 +70,12 @@ pub fn propose_transaction(
     let payer = next_account_info(accounts_iter)?;
     let system_program = next_account_info(accounts_iter)?;
 
-    validate(proposer, system_program, &instruction)?;
+    validate(program_id, multisig_account, proposer, system_program, &instruction)?;
 
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let owner_index = assert_present(
         multisig.owners.iter().position(|a| a == proposer.key),
-        MultisigError::InvalidOwner
+        MultisigError::InvalidOwner,
     )?;
     let mut signers = Vec::new();
     signers.resize(multisig.owners.len(), false);
@@ -104,13 +103,21 @@ pub fn propose_transaction(
 }
 
 fn validate(
+    program_id: &Pubkey,
+    multisig_account: &AccountInfo,
     proposer: &AccountInfo,
     system_program: &AccountInfo,
     instruction: &ProposeTransactionInstruction,
 ) -> ProgramResult {
-    assert_that(system_program.key == &system_program::id(), ProgramError::IncorrectProgramId)?;
+    assert_that(
+        *program_id == *multisig_account.owner,
+        MultisigError::AccountOwnedByWrongProgram,
+    )?;
+    assert_that(
+        system_program.key == &system_program::id(),
+        ProgramError::IncorrectProgramId,
+    )?;
     assert_that(proposer.is_signer, MultisigError::ProposerNotSigner)?;
     assert_that(!instruction.instructions.is_empty(), MultisigError::MissingInstructions)?;
     Ok(())
 }
-

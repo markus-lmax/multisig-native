@@ -4,10 +4,9 @@ use crate::state::transaction::Transaction;
 use borsh::BorshSerialize;
 use solana_program::account_info::next_account_info;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
+use solana_program::pubkey::Pubkey;
 
-pub fn approve_transaction(
-    accounts: &[AccountInfo],
-) -> ProgramResult {
+pub fn approve_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     msg!("invoke approve_transaction");
     let accounts_iter = &mut accounts.iter();
     let multisig_account = next_account_info(accounts_iter)?;
@@ -17,8 +16,7 @@ pub fn approve_transaction(
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let mut transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;
 
-
-    validate(&multisig, &transaction, approver, transaction_account, multisig_account)?;
+    validate(program_id, &multisig, &transaction, approver, transaction_account, multisig_account)?;
 
     let owner_index = assert_present(
         multisig.owners.iter().position(|a| a == approver.key),
@@ -31,12 +29,14 @@ pub fn approve_transaction(
 }
 
 fn validate(
+    program_id: &Pubkey,
     multisig: &Multisig,
     transaction: &Transaction,
     approver: &AccountInfo,
     transaction_account: &AccountInfo,
     multisig_account: &AccountInfo,
 ) -> ProgramResult {
+    assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
     assert_that(
         multisig.owner_set_seqno == transaction.owner_set_seqno,
         MultisigError::InvalidOwnerSetSequenceNumber,

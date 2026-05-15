@@ -8,10 +8,10 @@ use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::{account_info::AccountInfo, entrypoint::ProgramResult, msg};
 
-pub fn execute_transaction(_program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+pub fn execute_transaction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     msg!("invoke execute_transaction");
 
-    let validated = validate(accounts)?;
+    let validated = validate(program_id, accounts)?;
 
     let signer_seeds = &[(*validated.multisig_account.key).as_ref(), &[validated.multisig.nonce]];
     validated
@@ -47,7 +47,7 @@ struct ValidatedAccounts<'a, 'b> {
     transaction: Transaction,
 }
 
-fn validate<'a, 'b>(accounts: &'a [AccountInfo<'b>]) -> Result<ValidatedAccounts<'a, 'b>, ProgramError>
+fn validate<'a, 'b>(program_id: &Pubkey, accounts: &'a [AccountInfo<'b>]) -> Result<ValidatedAccounts<'a, 'b>, ProgramError>
 where
     'b: 'a,
 {
@@ -57,6 +57,8 @@ where
     let transaction_account = next_account_info(accounts_iter)?;
     let refundee = next_account_info(accounts_iter)?;
     let executor = next_account_info(accounts_iter)?;
+
+    assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
 
     let multisig = Multisig::checked_deserialize(&multisig_account.data.borrow())?;
     let transaction = Transaction::checked_deserialize(&transaction_account.data.borrow())?;

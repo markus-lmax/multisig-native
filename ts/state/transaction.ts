@@ -8,7 +8,7 @@ export class Transaction extends Assignable {
   }
 }
 
-const TransactionSchema = { struct: {
+export const TransactionSchema = { struct: {
   multisig: { array: { type: "u8", len: 32 }},
   instructions: { array: { type: { struct: {
     program_id: { array: { type: "u8", len: 32 }},

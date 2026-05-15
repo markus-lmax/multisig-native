@@ -1,9 +1,11 @@
 import {describe, test} from "node:test";
 import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
-import {MultisigDsl} from "../ts";
+import {MultisigDsl, MultisigSchema} from "../ts";
 import {assert} from "chai";
 import {Transaction} from "../ts/state/transaction";
+import {Buffer} from "node:buffer";
+import * as borsh from "borsh";
 
 describe("propose transaction", async () => {
   const programId = PublicKey.unique();
@@ -121,5 +123,43 @@ describe("propose transaction", async () => {
 
     assert(txMeta2.meta.logMessages.some(log => log.endsWith(" already in use")));
     assert(txMeta2.meta.logMessages.some(log => log.endsWith(" failed: custom program error: 0x0")));
+  });
+
+  await test("should reject a Multisig account not owned by the program", async () => {
+    const attacker = Keypair.generate();
+    const fakeMultisigAddress = Keypair.generate().publicKey;
+    const fakeMultisigData = Buffer.from(
+        borsh.serialize(MultisigSchema, {
+          owners: [attacker.publicKey.toBytes()],
+          threshold: 1,
+          nonce: 0,
+          owner_set_seqno: 0,
+          padding: [],
+        }),
+    );
+    context.setAccount(fakeMultisigAddress, {
+      lamports: 1_000_000_000,
+      data: fakeMultisigData,
+      owner: SystemProgram.programId, // wrong owner
+      executable: false,
+    });
+
+    const transactionInstruction = SystemProgram.transfer({
+      fromPubkey: context.payer.publicKey,
+      lamports: 1_000,
+      toPubkey: Keypair.generate().publicKey,
+    });
+
+    const [_, txMeta] = await dsl.proposeTransaction(attacker, [transactionInstruction], fakeMultisigAddress);
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected propose_transaction to log AccountOwnedByWrongProgram",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected propose_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
   });
 });

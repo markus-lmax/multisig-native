@@ -6,6 +6,7 @@ use solana_program::pubkey::Pubkey;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg,
 };
+use crate::errors::{assert_that, MultisigError};
 
 #[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct SetOwnersAndChangeThresholdInstruction {
@@ -25,6 +26,9 @@ pub fn set_owners_and_change_threshold(
     let multisig_signer = next_account_info(accounts_iter)?;
     let mut multisig_data = Multisig::checked_deserialize(&multisig_account.data.borrow_mut())?;
 
+    // Defense in depth: validate_signer below also implicitly requires this (only the multisig program can produce
+    // the PDA signer), but we assert it up front for symmetry with propose/approve/execute/cancel.
+    assert_that(*program_id == *multisig_account.owner, MultisigError::AccountOwnedByWrongProgram)?;
     validate_signer(multisig_signer, multisig_account, &multisig_data, program_id)?;
     validate_owners(&multisig_data, &instruction.owners)?;
     validate_threshold(instruction.threshold, &instruction.owners)?;

@@ -1,9 +1,11 @@
 import {describe, test} from "node:test";
 import {Keypair, PublicKey, SystemProgram} from "@solana/web3.js";
 import {start} from "solana-bankrun";
-import {MultisigDsl} from "../ts";
+import {MultisigDsl, MultisigSchema} from "../ts";
 import {assert} from "chai";
-import {Transaction} from "../ts/state/transaction";
+import {Transaction, TransactionSchema} from "../ts/state/transaction";
+import {Buffer} from "node:buffer";
+import * as borsh from "borsh";
 
 describe("approve transaction", async () => {
   const programId = PublicKey.unique();
@@ -163,4 +165,55 @@ describe("approve transaction", async () => {
     await dsl.assertBalance(multisig.signer, 1_000_000);
   });
 
+  await test("should reject a Multisig account not owned by the program", async () => {
+    // Forge a Multisig account that is *not* owned by the multisig program but contains Borsh-valid Multisig data.
+    const attacker = Keypair.generate();
+    const fakeMultisigAddress = Keypair.generate().publicKey;
+    const fakeMultisigData = Buffer.from(
+        borsh.serialize(MultisigSchema, {
+          owners: [attacker.publicKey.toBytes()],
+          threshold: 1,
+          nonce: 0,
+          owner_set_seqno: 0,
+          padding: [],
+        }),
+    );
+    context.setAccount(fakeMultisigAddress, {
+      lamports: 1_000_000_000,
+      data: fakeMultisigData,
+      owner: SystemProgram.programId,  // wrong owner: should be `programId`
+      executable: false,
+    });
+
+    // Forge a matching Transaction account. We have to mark it as owned by `programId` so the program is permitted
+    // to write back to it; this is the very thing an attacker can't do in practice, but bankrun's `setAccount` lets us
+    // bypass account creation to isolate the check we care about.
+    const fakeTxAddress = Keypair.generate().publicKey;
+    const fakeTxData = Buffer.from(
+        borsh.serialize(TransactionSchema, {
+          multisig: fakeMultisigAddress.toBytes(),
+          instructions: [],
+          signers: [false],
+          owner_set_seqno: 0,
+        }),
+    );
+    context.setAccount(fakeTxAddress, {
+      lamports: 1_000_000_000,
+      data: fakeTxData,
+      owner: programId,
+      executable: false,
+    });
+
+    const txMeta = await dsl.approveTransaction(attacker, fakeMultisigAddress, fakeTxAddress);
+
+    assert.ok(
+        txMeta.meta.logMessages.some(log => log.includes("AccountOwnedByWrongProgram")),
+        "expected approve_transaction to log AccountOwnedByWrongProgram",
+    );
+    assert.strictEqual(
+        txMeta.result,
+        "Error processing Instruction 0: custom program error: 0x13",
+        "expected approve_transaction to reject with AccountOwnedByWrongProgram (0x13)",
+    );
+  })
 });

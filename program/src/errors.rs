@@ -45,6 +45,8 @@ pub enum MultisigError {
     MultisigSignerNotSigner,
     #[error("The given multisig account is missing or not in the expected format.")]
     MalformedMultisigAccount,
+    #[error("The given account is owned by a different program than expected.")]
+    AccountOwnedByWrongProgram,
 }
 
 impl From<MultisigError> for ProgramError {
